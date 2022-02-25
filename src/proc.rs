@@ -1,6 +1,6 @@
 use crate::statement::Statement;
 
-struct Proc {
+pub(crate) struct Proc {
     params: Vec<String>,
     body: Statement,
 }

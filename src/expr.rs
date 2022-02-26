@@ -40,4 +40,18 @@ impl Value {
             }
         }
     }
+
+    pub(crate) fn to_string(&self) -> String {
+        // TODO: Avoid allocating if the value is already a string
+        match self {
+            Value::Num(num) => number_to_string(*num),
+            Value::Str(s) => s.clone(),
+            Value::Bool(b) => b.to_string(),
+        }
+    }
+}
+
+fn number_to_string(num: f64) -> String {
+    // FIXME: Rust does not format floats the same way as JavaScript.
+    num.to_string()
 }

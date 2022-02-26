@@ -27,7 +27,7 @@ pub(crate) enum Statement {
         body: Box<Statement>,
     },
     For {
-        counter: Expr,
+        counter: String,
         times: Expr,
         body: Box<Statement>,
     },

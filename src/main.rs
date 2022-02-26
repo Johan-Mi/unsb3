@@ -1,4 +1,4 @@
-use crate::vm::VM;
+use crate::{sprite::Sprite, vm::VM};
 use std::collections::HashMap;
 
 mod expr;
@@ -8,9 +8,10 @@ mod statement;
 mod vm;
 
 fn main() {
-    let vm = VM {
-        sprites: HashMap::new(),
-    };
+    let mut sprites = HashMap::new();
+    sprites.insert("sprite-1".to_owned(), Sprite { procs: Vec::new() });
+
+    let vm = VM { sprites };
 
     match vm.run() {
         Ok(()) => println!("Ran successfully"),

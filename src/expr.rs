@@ -5,7 +5,7 @@ pub(crate) enum Expr {
 }
 
 pub(crate) enum Value {
-    Num(f32),
+    Num(f64),
     Str(String),
     Bool(bool),
 }

@@ -9,7 +9,7 @@ pub(crate) enum Statement {
     IfElse {
         condition: Expr,
         if_true: Box<Statement>,
-        if_false: Expr,
+        if_false: Box<Statement>,
     },
     Repeat {
         times: Expr,

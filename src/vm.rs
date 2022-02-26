@@ -33,7 +33,9 @@ impl VM {
 
     fn run_statement(&self, stmt: &Statement) -> VMResult<()> {
         match stmt {
-            Statement::Call { proc_name, args } => todo!(),
+            Statement::Call { proc_name, args } => {
+                self.call_proc(proc_name, args)
+            }
             Statement::Do(stmts) => {
                 stmts.iter().try_for_each(|stmt| self.run_statement(stmt))
             }
@@ -103,6 +105,20 @@ impl VM {
             Expr::Lit(lit) => Ok(lit.clone()),
             Expr::Sym(_) => todo!(),
             Expr::Call { func_name, args } => todo!(),
+        }
+    }
+
+    fn call_proc(&self, proc_name: &str, args: &[Expr]) -> VMResult<()> {
+        match proc_name {
+            "print" => {
+                for arg in args {
+                    let arg = self.eval_expr(arg)?;
+                    println!("{}", arg.to_string());
+                }
+                Ok(())
+            }
+
+            _ => todo!(),
         }
     }
 }

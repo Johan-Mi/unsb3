@@ -18,7 +18,7 @@ impl Value {
         match self {
             Value::Num(num) => *num != 0.0 && !num.is_nan(),
             Value::Str(s) => {
-                s != "" && s != "0" && !s.eq_ignore_ascii_case("false")
+                !s.is_empty() && s != "0" && !s.eq_ignore_ascii_case("false")
             }
             Value::Bool(b) => *b,
         }

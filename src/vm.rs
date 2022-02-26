@@ -113,7 +113,7 @@ impl VM {
             "print" => {
                 for arg in args {
                     let arg = self.eval_expr(arg)?;
-                    println!("{}", arg.to_string());
+                    println!("{}", arg);
                 }
                 Ok(())
             }

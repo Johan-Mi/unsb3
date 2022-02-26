@@ -1,3 +1,5 @@
+use std::fmt;
+
 pub(crate) enum Expr {
     Lit(Value),
     Sym(String),
@@ -40,13 +42,14 @@ impl Value {
             }
         }
     }
+}
 
-    pub(crate) fn to_string(&self) -> String {
-        // TODO: Avoid allocating if the value is already a string
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Value::Num(num) => number_to_string(*num),
-            Value::Str(s) => s.clone(),
-            Value::Bool(b) => b.to_string(),
+            Value::Num(num) => number_to_string(*num).fmt(f),
+            Value::Str(s) => s.fmt(f),
+            Value::Bool(b) => b.fmt(f),
         }
     }
 }

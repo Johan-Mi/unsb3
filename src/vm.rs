@@ -4,10 +4,35 @@ use crate::{
     sprite::Sprite,
     statement::Statement,
 };
+use serde::{Deserialize, Deserializer};
 use std::collections::HashMap;
 
+#[derive(Debug, Deserialize)]
 pub(crate) struct VM {
+    #[serde(rename = "targets")]
+    #[serde(deserialize_with = "deserialize_sprites")]
     pub sprites: HashMap<String, Sprite>,
+}
+
+fn deserialize_sprites<'de, D>(
+    deserializer: D,
+) -> Result<HashMap<String, Sprite>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    struct NamedSprite {
+        name: String,
+        #[serde(flatten)]
+        inner: Sprite,
+    }
+
+    let sprites = <Vec<NamedSprite>>::deserialize(deserializer)?;
+
+    Ok(sprites
+        .into_iter()
+        .map(|NamedSprite { name, inner }| (name, inner))
+        .collect())
 }
 
 type VMResult<T> = Result<T, String>; // TODO: Proper error type

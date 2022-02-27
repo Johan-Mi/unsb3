@@ -1,11 +1,5 @@
-use crate::{
-    expr::{Expr, Value},
-    proc::Proc,
-    sprite::Sprite,
-    statement::Statement,
-    vm::VM,
-};
-use std::collections::HashMap;
+use crate::vm::VM;
+use std::{fs::File, io::BufReader};
 
 mod expr;
 mod proc;
@@ -14,29 +8,26 @@ mod statement;
 mod vm;
 
 fn main() {
-    let mut sprites = HashMap::new();
-    sprites.insert(
-        "sprite-1".to_owned(),
-        Sprite {
-            procs: vec![Proc {
-                params: Vec::new(),
-                body: Statement::Repeat {
-                    times: Expr::Lit(Value::Num(10.0)),
-                    body: Box::new(Statement::Call {
-                        proc_name: "print".to_owned(),
-                        args: vec![Expr::Lit(Value::Str(
-                            "Hello, world!".to_owned(),
-                        ))],
-                    }),
-                },
-            }],
-        },
-    );
-
-    let vm = VM { sprites };
+    let path = "project.json";
+    let file = match File::open(path) {
+        Ok(file) => file,
+        Err(err) => {
+            eprintln!("IO error: {err}");
+            return;
+        }
+    };
+    let reader = BufReader::new(file);
+    let vm: VM = match serde_json::from_reader(reader) {
+        Ok(vm) => vm,
+        Err(err) => {
+            eprintln!("Deserialization error: {err}");
+            return;
+        }
+    };
+    println!("{vm:#?}");
 
     match vm.run() {
         Ok(()) => println!("Ran successfully"),
-        Err(err) => eprintln!("Error: {err}"),
+        Err(err) => eprintln!("VM error: {err}"),
     }
 }

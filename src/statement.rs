@@ -1,5 +1,6 @@
 use crate::expr::Expr;
 
+#[derive(Debug)]
 pub(crate) enum Statement {
     Call {
         proc_name: String,

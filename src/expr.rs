@@ -1,12 +1,13 @@
 use std::fmt;
 
+#[derive(Debug)]
 pub(crate) enum Expr {
     Lit(Value),
     Sym(String),
     Call { func_name: String, args: Vec<Expr> },
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub(crate) enum Value {
     Num(f64),
     Str(String),

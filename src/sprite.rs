@@ -22,5 +22,5 @@ where
 {
     let blocks = <HashMap<String, Block>>::deserialize(deserializer)?;
     let ctx = DeCtx::new(blocks);
-    ctx.build_procs().map_err(|err| D::Error::custom(err))
+    ctx.build_procs().map_err(D::Error::custom)
 }

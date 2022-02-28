@@ -1,6 +1,7 @@
 use crate::vm::VM;
 use std::{fs::File, io::BufReader};
 
+mod deser;
 mod expr;
 mod field;
 mod proc;

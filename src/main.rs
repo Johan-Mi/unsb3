@@ -2,6 +2,7 @@ use crate::vm::VM;
 use std::{fs::File, io::BufReader};
 
 mod expr;
+mod field;
 mod proc;
 mod sprite;
 mod statement;

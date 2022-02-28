@@ -1,10 +1,12 @@
-use crate::expr::Expr;
+use crate::{expr::Expr, field::Field};
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub(crate) enum Statement {
-    Call {
-        proc_name: String,
-        args: Vec<Expr>,
+    Builtin {
+        opcode: String,
+        inputs: HashMap<String, Expr>,
+        fields: HashMap<String, Field>,
     },
     Do(Vec<Statement>),
     IfElse {

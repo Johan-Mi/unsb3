@@ -28,12 +28,7 @@ impl Value {
     pub(crate) fn to_num(&self) -> f64 {
         match self {
             Value::Num(num) => *num,
-            Value::Str(s) => match s.trim() {
-                "Infinity" | "+Infinity" => f64::INFINITY,
-                "-Infinity" => f64::NEG_INFINITY,
-                "inf" | "+inf" | "-inf" => 0.0,
-                s => s.parse().unwrap_or(0.0),
-            },
+            Value::Str(s) => str_to_num(s),
             Value::Bool(b) => {
                 if *b {
                     1.0
@@ -42,6 +37,15 @@ impl Value {
                 }
             }
         }
+    }
+}
+
+pub(crate) fn str_to_num(s: &str) -> f64 {
+    match s.trim() {
+        "Infinity" | "+Infinity" => f64::INFINITY,
+        "-Infinity" => f64::NEG_INFINITY,
+        "inf" | "+inf" | "-inf" => 0.0,
+        s => s.parse().unwrap_or(0.0),
     }
 }
 

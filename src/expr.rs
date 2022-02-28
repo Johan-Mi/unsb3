@@ -1,10 +1,15 @@
-use std::fmt;
+use crate::field::Field;
+use std::{collections::HashMap, fmt};
 
 #[derive(Debug)]
 pub(crate) enum Expr {
     Lit(Value),
     Sym(String),
-    Call { func_name: String, args: Vec<Expr> },
+    Call {
+        opcode: String,
+        inputs: HashMap<String, Expr>,
+        fields: HashMap<String, Field>,
+    },
 }
 
 #[derive(Debug, Clone)]

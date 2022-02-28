@@ -135,7 +135,11 @@ impl VM {
         match expr {
             Expr::Lit(lit) => Ok(lit.clone()),
             Expr::Sym(_) => todo!(),
-            Expr::Call { func_name, args } => todo!(),
+            Expr::Call {
+                opcode,
+                inputs,
+                fields,
+            } => todo!(),
         }
     }
 

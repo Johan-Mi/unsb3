@@ -43,7 +43,12 @@ fn build_procs(blocks: &HashMap<String, Block>) -> Vec<Proc> {
     blocks
         .values()
         .filter_map(|block| match &*block.opcode {
-            "procedures_definition" => todo!(),
+            "procedures_definition" => {
+                let next = block.next.as_ref()?;
+                let body = build_statement(blocks, next);
+                let signature = todo!();
+                Some(Proc { signature, body })
+            }
             "event_whenflagclicked" => {
                 let next = block.next.as_ref()?;
                 let body = build_statement(blocks, next);
@@ -62,7 +67,45 @@ fn build_statement(blocks: &HashMap<String, Block>, id: &str) -> Statement {
     let block = blocks.get(id).unwrap();
 
     match &*block.opcode {
-        "control_if" => todo!(),
+        "control_if" => {
+            let condition = block.inputs.get("CONDITION").unwrap();
+            let condition = build_expr(blocks, condition);
+            let if_true = block
+                .inputs
+                .get("SUBSTACK")
+                .and_then(get_rep)
+                .and_then(Json::as_str)
+                .unwrap();
+            let if_true = build_statement(blocks, if_true);
+            Statement::IfElse {
+                condition,
+                if_true: Box::new(if_true),
+                if_false: Box::new(Statement::Do(Vec::new())),
+            }
+        }
+        "control_if_else" => {
+            let condition = block.inputs.get("CONDITION").unwrap();
+            let condition = build_expr(blocks, condition);
+            let if_true = block
+                .inputs
+                .get("SUBSTACK")
+                .and_then(get_rep)
+                .and_then(Json::as_str)
+                .unwrap();
+            let if_true = build_statement(blocks, if_true);
+            let if_false = block
+                .inputs
+                .get("SUBSTACK2")
+                .and_then(get_rep)
+                .and_then(Json::as_str)
+                .unwrap();
+            let if_false = build_statement(blocks, if_false);
+            Statement::IfElse {
+                condition,
+                if_true: Box::new(if_true),
+                if_false: Box::new(if_false),
+            }
+        }
         "control_repeat" => todo!(),
         "control_forever" => {
             let body = block
@@ -78,7 +121,20 @@ fn build_statement(blocks: &HashMap<String, Block>, id: &str) -> Statement {
         }
         "control_repeat_until" => todo!(),
         "control_while" => todo!(),
-        "control_for_each" => todo!(),
+        "control_for_each" => {
+            let body = block
+                .inputs
+                .get("SUBSTACK")
+                .and_then(get_rep)
+                .and_then(Json::as_str)
+                .unwrap();
+            let body = build_statement(blocks, body);
+            Statement::For {
+                counter: todo!(),
+                times: todo!(),
+                body: Box::new(body),
+            }
+        }
         opcode => {
             let inputs = block
                 .inputs
@@ -121,12 +177,26 @@ fn build_expr(blocks: &HashMap<String, Block>, json: &Json) -> Expr {
 
 // FIXME: This should be able to return an error
 fn build_field(blocks: &HashMap<String, Block>, json: &Json) -> Field {
+    dbg!(json);
     todo!()
 }
 
 // FIXME: This should be able to return an error
 fn build_funcall(blocks: &HashMap<String, Block>, id: &str) -> Expr {
-    todo!()
+    let block = blocks.get(id).unwrap();
+    Expr::Call {
+        opcode: block.opcode.to_string(),
+        inputs: block
+            .inputs
+            .iter()
+            .map(|(id, inp)| (id.clone(), build_expr(blocks, inp)))
+            .collect(),
+        fields: block
+            .fields
+            .iter()
+            .map(|(id, inp)| (id.clone(), build_field(blocks, inp)))
+            .collect(),
+    }
 }
 
 fn get_rep(json: &Json) -> Option<&Json> {

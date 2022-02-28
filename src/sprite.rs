@@ -2,7 +2,7 @@ use crate::{
     deser::{Block, DeCtx},
     proc::Proc,
 };
-use serde::{Deserialize, Deserializer};
+use serde::{de::Error, Deserialize, Deserializer};
 use std::{cell::Cell, collections::HashMap};
 
 #[derive(Debug, Deserialize)]
@@ -21,6 +21,6 @@ where
     D: Deserializer<'de>,
 {
     let blocks = <HashMap<String, Block>>::deserialize(deserializer)?;
-    let ctx = DeCtx { blocks };
-    Ok(ctx.build_procs())
+    let ctx = DeCtx::new(blocks);
+    ctx.build_procs().map_err(|err| D::Error::custom(err))
 }

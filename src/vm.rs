@@ -1,6 +1,5 @@
 use crate::{
     expr::{Expr, Value},
-    field::Field,
     proc::Proc,
     sprite::Sprite,
     statement::Statement,
@@ -59,11 +58,9 @@ impl VM {
 
     fn run_statement(&self, sprite: &Sprite, stmt: &Statement) -> VMResult<()> {
         match stmt {
-            Statement::Builtin {
-                opcode,
-                inputs,
-                fields,
-            } => self.call_builtin_statement(sprite, opcode, inputs, fields),
+            Statement::Builtin { opcode, inputs } => {
+                self.call_builtin_statement(sprite, opcode, inputs)
+            }
             Statement::Do(stmts) => stmts
                 .iter()
                 .try_for_each(|stmt| self.run_statement(sprite, stmt)),
@@ -128,6 +125,10 @@ impl VM {
                 }
                 Ok(())
             }
+            Statement::DeleteAllOfList { .. } => todo!(),
+            Statement::AddToList { .. } => todo!(),
+            Statement::ReplaceItemOfList { .. } => todo!(),
+            Statement::SetVariable { .. } => todo!(),
         }
     }
 
@@ -135,11 +136,10 @@ impl VM {
         match expr {
             Expr::Lit(lit) => Ok(lit.clone()),
             Expr::Sym(_) => todo!(),
-            Expr::Call {
-                opcode,
-                inputs,
-                fields,
-            } => todo!(),
+            Expr::GetVar { .. } => todo!(),
+            Expr::ProcArgStringNumber { .. } => todo!(),
+            Expr::ItemOfList { .. } => todo!(),
+            Expr::Call { opcode, inputs } => todo!(),
         }
     }
 
@@ -148,7 +148,6 @@ impl VM {
         sprite: &Sprite,
         opcode: &str,
         inputs: &HashMap<String, Expr>,
-        fields: &HashMap<String, Field>,
     ) -> VMResult<()> {
         match opcode {
             "motion_changexby" => {

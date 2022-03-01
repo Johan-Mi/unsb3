@@ -1,6 +1,5 @@
 use crate::{
-    expr::{str_to_num, Expr, Value},
-    field::Field,
+    expr::{Expr, Value},
     proc::{Proc, Signature},
     statement::Statement,
 };
@@ -38,6 +37,12 @@ pub(crate) struct Block<'a> {
     pub inputs: HashMap<String, Json>,
     #[serde(default)]
     pub fields: HashMap<String, Json>,
+    pub mutation: Option<Mutation<'a>>,
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct Mutation<'a> {
+    proccode: Cow<'a, str>,
 }
 
 impl<'a> DeCtx<'a> {
@@ -54,7 +59,17 @@ impl<'a> DeCtx<'a> {
                     // This should be a `try` block
                     Some((|| {
                         let body = self.build_statement(next)?;
-                        let signature = todo!();
+                        let proto_id = block
+                            .inputs
+                            .get("custom_block")
+                            .and_then(get_rep)
+                            .and_then(Json::as_str)
+                            .unwrap();
+                        let proto = self.get(proto_id)?;
+                        let param_ids = proto.inputs.keys().cloned().collect();
+                        let mutation = proto.mutation.as_ref().unwrap();
+                        let name = mutation.proccode.to_string();
+                        let signature = Signature::Custom { name, param_ids };
                         Ok(Proc { signature, body })
                     })())
                 }
@@ -131,34 +146,54 @@ impl<'a> DeCtx<'a> {
             "control_repeat_until" => todo!(),
             "control_while" => todo!(),
             "control_for_each" => {
-                let body = block
-                    .inputs
-                    .get("SUBSTACK")
-                    .and_then(get_rep)
-                    .and_then(Json::as_str)
-                    .unwrap();
-                let body = self.build_statement(body)?;
+                let counter = var_list_field(block, "VARIABLE")?.to_owned();
+                let times = self.input(block, "VALUE")?;
+                let body = Box::new(self.substack(block, "SUBSTACK")?);
                 Ok(Statement::For {
-                    counter: todo!(),
-                    times: todo!(),
-                    body: Box::new(body),
+                    counter,
+                    times,
+                    body,
                 })
             }
+            "data_deletealloflist" => {
+                let list_id = var_list_field(block, "LIST")?.to_owned();
+                Ok(Statement::DeleteAllOfList { list_id })
+            }
+            "data_addtolist" => {
+                let list_id = var_list_field(block, "LIST")?.to_owned();
+                let item = self.input(block, "ITEM")?;
+                Ok(Statement::AddToList { list_id, item })
+            }
+            "data_replaceitemoflist" => {
+                let list_id = var_list_field(block, "LIST")?.to_owned();
+                let index = self.input(block, "INDEX")?;
+                let item = self.input(block, "ITEM")?;
+                Ok(Statement::ReplaceItemOfList {
+                    list_id,
+                    index,
+                    item,
+                })
+            }
+            "data_setvariableto" => {
+                let var_id = var_list_field(block, "VARIABLE")?.to_owned();
+                let value = self.input(block, "VALUE")?;
+                Ok(Statement::SetVariable { var_id, value })
+            }
             opcode => {
+                // Field generation has to be done manually for each opcode that uses it
+                if !block.fields.is_empty() {
+                    dbg!(block);
+                    todo!();
+                }
+
                 let inputs = block
                     .inputs
                     .iter()
                     .map(|(id, b)| Ok((id.clone(), self.build_expr(b)?)))
                     .collect::<Result<_, _>>()?;
-                let fields = block
-                    .fields
-                    .iter()
-                    .map(|(id, b)| Ok((id.clone(), self.build_field(b)?)))
-                    .collect::<Result<_, _>>()?;
                 Ok(Statement::Builtin {
                     opcode: opcode.to_string(),
                     inputs,
-                    fields,
                 })
             }
         }
@@ -169,51 +204,67 @@ impl<'a> DeCtx<'a> {
         match rep {
             Json::String(id) => self.build_funcall(id),
             Json::Array(arr) => match &arr[..] {
-                [Json::Number(n), num]
+                [Json::Number(n), s]
                     if n == &serde_json::Number::from(10u32) =>
                 {
-                    let num = match num {
-                        Json::Number(num) => f64::deserialize(num).unwrap(),
-                        Json::String(s) => str_to_num(s),
+                    let s = match s {
+                        Json::String(s) => s,
                         _ => todo!(),
                     };
-                    Ok(Expr::Lit(Value::Num(num)))
+                    Ok(Expr::Lit(Value::Str(s.to_owned())))
                 }
-                _ => todo!(),
+                [Json::Number(n), Json::String(_), Json::String(var_id)]
+                    if n == &serde_json::Number::from(12u32) =>
+                {
+                    Ok(Expr::GetVar {
+                        var_id: var_id.to_owned(),
+                    })
+                }
+                arr => {
+                    dbg!(arr);
+                    todo!()
+                }
             },
             _ => todo!(),
         }
     }
 
-    fn build_field(&self, json: &Json) -> DeResult<Field> {
-        dbg!(json);
-        todo!()
-    }
-
     fn build_funcall(&self, id: &str) -> DeResult<Expr> {
         let block = self.get(id)?;
 
-        // Field generation has to be done manually for each opcode that uses it
-        if !block.fields.is_empty() {
-            dbg!(block);
-        }
-
         match &*block.opcode {
+            "argument_reporter_string_number" => {
+                let name = block.fields.get("VALUE").unwrap();
+                let arr = name.as_array().unwrap();
+                let name = match &arr[..] {
+                    [Json::String(name), Json::Null] => name.to_owned(),
+                    _ => todo!(),
+                };
+                Ok(Expr::ProcArgStringNumber { name })
+            }
+            "data_itemoflist" => {
+                let index = self.input(block, "INDEX")?;
+                let list_id = var_list_field(block, "LIST")?.to_owned();
+                Ok(Expr::ItemOfList {
+                    list_id,
+                    index: Box::new(index),
+                })
+            }
             opcode => {
+                // Field generation has to be done manually for each opcode that uses it
+                if !block.fields.is_empty() {
+                    dbg!(block);
+                    todo!();
+                }
+
                 let inputs = block
                     .inputs
                     .iter()
                     .map(|(id, inp)| Ok((id.clone(), self.build_expr(inp)?)))
                     .collect::<Result<_, _>>()?;
-                let fields = block
-                    .fields
-                    .iter()
-                    .map(|(id, inp)| Ok((id.clone(), self.build_field(inp)?)))
-                    .collect::<Result<_, _>>()?;
                 Ok(Expr::Call {
                     opcode: opcode.to_string(),
                     inputs,
-                    fields,
                 })
             }
         }
@@ -233,6 +284,16 @@ impl<'a> DeCtx<'a> {
             .get(id)
             .ok_or_else(|| DeError::NonExsistentID(id.to_owned()))
     }
+
+    fn substack(&self, block: &Block, name: &str) -> DeResult<Statement> {
+        let stack = block
+            .inputs
+            .get("SUBSTACK")
+            .and_then(get_rep)
+            .and_then(Json::as_str)
+            .unwrap();
+        self.build_statement(stack)
+    }
 }
 
 fn get_rep(json: &Json) -> Option<&Json> {
@@ -240,5 +301,13 @@ fn get_rep(json: &Json) -> Option<&Json> {
     match &arr[..] {
         [Json::Number(_), val, ..] => Some(val),
         _ => None,
+    }
+}
+
+fn var_list_field<'blk>(block: &'blk Block, name: &str) -> DeResult<&'blk str> {
+    let arr = block.fields.get(name).and_then(Json::as_array).unwrap();
+    match &arr[..] {
+        [Json::String(_), Json::String(id)] => Ok(&id),
+        _ => todo!(),
     }
 }

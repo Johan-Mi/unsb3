@@ -1,4 +1,4 @@
-use crate::{expr::Expr, field::Field};
+use crate::expr::Expr;
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -6,7 +6,6 @@ pub(crate) enum Statement {
     Builtin {
         opcode: String,
         inputs: HashMap<String, Expr>,
-        fields: HashMap<String, Field>,
     },
     Do(Vec<Statement>),
     IfElse {
@@ -33,5 +32,21 @@ pub(crate) enum Statement {
         counter: String,
         times: Expr,
         body: Box<Statement>,
+    },
+    DeleteAllOfList {
+        list_id: String,
+    },
+    AddToList {
+        list_id: String,
+        item: Expr,
+    },
+    ReplaceItemOfList {
+        list_id: String,
+        index: Expr,
+        item: Expr,
+    },
+    SetVariable {
+        var_id: String,
+        value: Expr,
     },
 }

@@ -8,6 +8,9 @@ pub(crate) struct Proc {
 
 #[derive(Debug)]
 pub(crate) enum Signature {
-    Custom { name: String, params: Vec<String> },
+    Custom {
+        name: String,
+        param_ids: Vec<String>,
+    },
     WhenFlagClicked,
 }

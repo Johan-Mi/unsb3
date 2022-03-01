@@ -1,14 +1,22 @@
-use crate::field::Field;
 use std::{collections::HashMap, fmt};
 
 #[derive(Debug)]
 pub(crate) enum Expr {
     Lit(Value),
     Sym(String),
+    GetVar {
+        var_id: String,
+    },
+    ProcArgStringNumber {
+        name: String,
+    },
+    ItemOfList {
+        list_id: String,
+        index: Box<Expr>,
+    },
     Call {
         opcode: String,
         inputs: HashMap<String, Expr>,
-        fields: HashMap<String, Field>,
     },
 }
 

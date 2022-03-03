@@ -5,13 +5,19 @@ use crate::{
     statement::Statement,
 };
 use serde::{Deserialize, Deserializer};
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct VM {
     #[serde(rename = "targets")]
     #[serde(deserialize_with = "deserialize_sprites")]
-    pub sprites: HashMap<String, Sprite>,
+    sprites: HashMap<String, Sprite>,
+    #[serde(skip_deserializing)]
+    // FIXME: this should be deserialized from the sprites
+    vars: RefCell<HashMap<String, Value>>,
+    #[serde(skip_deserializing)]
+    // FIXME: this should be deserialized from the sprites
+    lists: RefCell<HashMap<String, Vec<Value>>>,
 }
 
 fn deserialize_sprites<'de, D>(
@@ -125,10 +131,23 @@ impl VM {
                 }
                 Ok(())
             }
-            Statement::DeleteAllOfList { .. } => todo!(),
+            Statement::DeleteAllOfList { list_id } => {
+                // This could be done with a simple `insert` but that would
+                // throw away the capacity of the old vector.
+                self.lists
+                    .borrow_mut()
+                    .entry(list_id.to_owned())
+                    .and_modify(Vec::clear)
+                    .or_insert_with(Vec::new);
+                Ok(())
+            }
             Statement::AddToList { .. } => todo!(),
             Statement::ReplaceItemOfList { .. } => todo!(),
-            Statement::SetVariable { .. } => todo!(),
+            Statement::SetVariable { var_id, value } => {
+                let value = self.eval_expr(value)?;
+                self.vars.borrow_mut().insert(var_id.to_owned(), value);
+                Ok(())
+            }
         }
     }
 
@@ -150,6 +169,18 @@ impl VM {
         inputs: &HashMap<String, Expr>,
     ) -> VMResult<()> {
         match opcode {
+            "motion_setx" => {
+                let x = inputs.get("X").unwrap();
+                let x = self.eval_expr(x)?;
+                sprite.x.set(x.to_num());
+                Ok(())
+            }
+            "motion_sety" => {
+                let y = inputs.get("Y").unwrap();
+                let y = self.eval_expr(y)?;
+                sprite.y.set(y.to_num());
+                Ok(())
+            }
             "motion_changexby" => {
                 let dx = inputs.get("DX").unwrap();
                 let dx = self.eval_expr(dx)?;
@@ -162,7 +193,11 @@ impl VM {
                 sprite.y.set(sprite.y.get() + dy.to_num());
                 Ok(())
             }
-            _ => todo!(),
+            _ => {
+                dbg!(opcode);
+                dbg!(inputs);
+                todo!()
+            }
         }
     }
 }

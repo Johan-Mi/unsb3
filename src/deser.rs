@@ -32,11 +32,11 @@ impl serde::de::Error for DeError {
 pub(crate) struct Block<'a> {
     pub opcode: Cow<'a, str>,
     // pub parent: Option<String>,
-    pub next: Option<String>,
+    pub next: Option<Cow<'a, str>>,
     #[serde(default)]
-    pub inputs: HashMap<String, Json>,
+    pub inputs: HashMap<Cow<'a, str>, Json>,
     #[serde(default)]
-    pub fields: HashMap<String, Json>,
+    pub fields: HashMap<Cow<'a, str>, Json>,
     pub mutation: Option<Mutation<'a>>,
 }
 
@@ -66,7 +66,8 @@ impl<'a> DeCtx<'a> {
                             .and_then(Json::as_str)
                             .unwrap();
                         let proto = self.get(proto_id)?;
-                        let param_ids = proto.inputs.keys().cloned().collect();
+                        let param_ids =
+                            proto.inputs.keys().map(Cow::to_string).collect();
                         let mutation = proto.mutation.as_ref().unwrap();
                         let name = mutation.proccode.to_string();
                         let signature = Signature::Custom { name, param_ids };
@@ -209,7 +210,7 @@ impl<'a> DeCtx<'a> {
                 let inputs = block
                     .inputs
                     .iter()
-                    .map(|(id, b)| Ok((id.clone(), self.build_expr(b)?)))
+                    .map(|(id, b)| Ok((id.to_string(), self.build_expr(b)?)))
                     .collect::<Result<_, _>>()?;
                 Ok(Statement::Builtin {
                     opcode: opcode.to_string(),
@@ -280,7 +281,9 @@ impl<'a> DeCtx<'a> {
                 let inputs = block
                     .inputs
                     .iter()
-                    .map(|(id, inp)| Ok((id.clone(), self.build_expr(inp)?)))
+                    .map(|(id, inp)| {
+                        Ok((id.to_string(), self.build_expr(inp)?))
+                    })
                     .collect::<Result<_, _>>()?;
                 Ok(Expr::Call {
                     opcode: opcode.to_string(),

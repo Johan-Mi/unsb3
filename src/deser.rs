@@ -307,7 +307,7 @@ fn get_rep(json: &Json) -> Option<&Json> {
 fn var_list_field<'blk>(block: &'blk Block, name: &str) -> DeResult<&'blk str> {
     let arr = block.fields.get(name).and_then(Json::as_array).unwrap();
     match &arr[..] {
-        [Json::String(_), Json::String(id)] => Ok(&id),
+        [Json::String(_), Json::String(id)] => Ok(id),
         _ => todo!(),
     }
 }

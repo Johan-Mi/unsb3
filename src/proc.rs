@@ -13,4 +13,7 @@ pub(crate) enum Signature {
         param_ids: Vec<String>,
     },
     WhenFlagClicked,
+    WhenBroadcastReceived {
+        broadcast_name: String,
+    },
 }

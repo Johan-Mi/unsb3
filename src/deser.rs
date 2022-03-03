@@ -84,6 +84,26 @@ impl<'a> DeCtx<'a> {
                         })
                     })())
                 }
+                "event_whenbroadcastreceived" => {
+                    let next = block.next.as_ref()?;
+                    // This should be a `try` block
+                    Some((|| {
+                        let broadcast_name =
+                            block.fields.get("BROADCAST_OPTION").unwrap();
+                        let arr = broadcast_name.as_array().unwrap();
+                        let broadcast_name = match &arr[..] {
+                            [Json::String(name), Json::Null] => name.to_owned(),
+                            _ => todo!(),
+                        };
+                        let body = self.build_statement(next)?;
+                        Ok(Proc {
+                            signature: Signature::WhenBroadcastReceived {
+                                broadcast_name,
+                            },
+                            body,
+                        })
+                    })())
+                }
                 _ => None,
             })
             .collect()

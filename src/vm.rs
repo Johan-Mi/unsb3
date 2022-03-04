@@ -1,6 +1,6 @@
 use crate::{
     expr::{Expr, Value},
-    proc::Proc,
+    proc::{Proc, Signature},
     sprite::Sprite,
     statement::Statement,
 };
@@ -49,11 +49,11 @@ impl VM {
     pub fn run(&self) -> VMResult<()> {
         println!("Running vm...");
 
-        // FIXME: This just runs all scripts in all sprites with no concept of
-        // events.
         for spr in self.sprites.values() {
             for proc in &spr.procs {
-                self.run_proc(spr, proc)?;
+                if let Signature::WhenFlagClicked = proc.signature {
+                    self.run_proc(spr, proc)?;
+                }
             }
         }
 

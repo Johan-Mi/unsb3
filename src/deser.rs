@@ -116,13 +116,7 @@ impl<'a> DeCtx<'a> {
         match &*block.opcode {
             "control_if" => {
                 let condition = self.input(block, "CONDITION")?;
-                let if_true = block
-                    .inputs
-                    .get("SUBSTACK")
-                    .and_then(get_rep)
-                    .and_then(Json::as_str)
-                    .unwrap();
-                let if_true = self.build_statement(if_true)?;
+                let if_true = self.substack(block, "SUBSTACK")?;
                 Ok(Statement::IfElse {
                     condition,
                     if_true: Box::new(if_true),
@@ -131,50 +125,56 @@ impl<'a> DeCtx<'a> {
             }
             "control_if_else" => {
                 let condition = self.input(block, "CONDITION")?;
-                let if_true = block
-                    .inputs
-                    .get("SUBSTACK")
-                    .and_then(get_rep)
-                    .and_then(Json::as_str)
-                    .unwrap();
-                let if_true = self.build_statement(if_true)?;
-                let if_false = block
-                    .inputs
-                    .get("SUBSTACK2")
-                    .and_then(get_rep)
-                    .and_then(Json::as_str)
-                    .unwrap();
-                let if_false = self.build_statement(if_false)?;
+                let if_true = self.substack(block, "SUBSTACK")?;
+                let if_false = self.substack(block, "SUBSTACK2")?;
                 Ok(Statement::IfElse {
                     condition,
                     if_true: Box::new(if_true),
                     if_false: Box::new(if_false),
                 })
             }
-            "control_repeat" => todo!(),
+            "control_repeat" => {
+                let times = self.input(block, "TIMES")?;
+                let body = Box::new(self.substack(block, "SUBSTACK")?);
+                Ok(Statement::Repeat { times, body })
+            }
             "control_forever" => {
-                let body = block
-                    .inputs
-                    .get("SUBSTACK")
-                    .and_then(get_rep)
-                    .and_then(Json::as_str)
-                    .unwrap();
-                let body = self.build_statement(body)?;
+                let body = self.substack(block, "SUBSTACK")?;
                 Ok(Statement::Forever {
                     body: Box::new(body),
                 })
             }
-            "control_repeat_until" => todo!(),
-            "control_while" => todo!(),
+            "control_repeat_until" => {
+                let condition = self.input(block, "CONDITION")?;
+                let body = Box::new(self.substack(block, "SUBSTACK")?);
+                Ok(Statement::Until { condition, body })
+            }
+            "control_while" => {
+                let condition = self.input(block, "CONDITION")?;
+                let body = Box::new(self.substack(block, "SUBSTACK")?);
+                Ok(Statement::While { condition, body })
+            }
             "control_for_each" => {
-                let counter = var_list_field(block, "VARIABLE")?.to_owned();
+                let counter_id = var_list_field(block, "VARIABLE")?.to_owned();
                 let times = self.input(block, "VALUE")?;
                 let body = Box::new(self.substack(block, "SUBSTACK")?);
                 Ok(Statement::For {
-                    counter,
+                    counter_id,
                     times,
                     body,
                 })
+            }
+            "procedures_call" => {
+                let mutation = block.mutation.as_ref().unwrap();
+                let proccode = mutation.proccode.to_string();
+                let args = block
+                    .inputs
+                    .iter()
+                    .map(|(id, arg)| {
+                        Ok((id.to_string(), self.build_expr(arg)?))
+                    })
+                    .collect::<Result<_, _>>()?;
+                Ok(Statement::ProcCall { proccode, args })
             }
             "data_deletealloflist" => {
                 let list_id = var_list_field(block, "LIST")?.to_owned();
@@ -311,7 +311,7 @@ impl<'a> DeCtx<'a> {
     fn substack(&self, block: &Block, name: &str) -> DeResult<Statement> {
         let stack = block
             .inputs
-            .get("SUBSTACK")
+            .get(name)
             .and_then(get_rep)
             .and_then(Json::as_str)
             .unwrap();

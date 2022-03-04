@@ -29,9 +29,13 @@ pub(crate) enum Statement {
         body: Box<Statement>,
     },
     For {
-        counter: String,
+        counter_id: String,
         times: Expr,
         body: Box<Statement>,
+    },
+    ProcCall {
+        proccode: String,
+        args: HashMap<String, Expr>,
     },
     DeleteAllOfList {
         list_id: String,

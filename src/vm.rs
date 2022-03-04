@@ -128,9 +128,28 @@ impl VM {
                 Ok(())
             }
             Statement::ProcCall { proccode, args } => {
-                dbg!(proccode);
-                dbg!(args);
-                todo!()
+                let proc =
+                    sprite.procs.iter().find(|p| p.name_is(proccode)).unwrap();
+
+                for (id, arg) in args {
+                    let arg = self.eval_expr(sprite, arg)?;
+                    self.proc_args
+                        .borrow_mut()
+                        .entry(id.to_string())
+                        .or_insert_with(|| Vec::with_capacity(1))
+                        .push(arg);
+                }
+
+                self.run_proc(sprite, proc)?;
+
+                for id in args.keys() {
+                    if let Some(stack) = self.proc_args.borrow_mut().get_mut(id)
+                    {
+                        stack.pop();
+                    }
+                }
+
+                Ok(())
             }
             Statement::DeleteAllOfList { list_id } => {
                 // This could be done with a simple `insert` but that would

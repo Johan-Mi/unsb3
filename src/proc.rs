@@ -17,3 +17,10 @@ pub(crate) enum Signature {
         broadcast_name: String,
     },
 }
+
+impl Proc {
+    pub fn name_is(&self, name: &str) -> bool {
+        matches!(&self.signature,
+            Signature::Custom { name: my_name, .. } if my_name == name)
+    }
+}

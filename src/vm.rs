@@ -181,7 +181,24 @@ impl VM {
                     .push(item);
                 Ok(())
             }
-            Statement::ReplaceItemOfList { .. } => todo!(),
+            Statement::ReplaceItemOfList {
+                list_id,
+                index,
+                item,
+            } => {
+                let index = self.eval_expr(sprite, index)?;
+                let item = self.eval_expr(sprite, item)?;
+                let mut lists = self.lists.borrow_mut();
+                // This should be a `try` block
+                (|| {
+                    let lst = lists.get_mut(list_id)?;
+                    let index = index.to_index()?;
+                    let slot = lst.get_mut(index)?;
+                    *slot = item;
+                    Some(())
+                })();
+                Ok(())
+            }
             Statement::SetVariable { var_id, value } => {
                 let value = self.eval_expr(sprite, value)?;
                 self.vars.borrow_mut().insert(var_id.to_owned(), value);
@@ -271,6 +288,15 @@ impl VM {
         inputs: &HashMap<String, Expr>,
     ) -> VMResult<()> {
         match opcode {
+            "motion_gotoxy" => {
+                let x = inputs.get("X").unwrap();
+                let x = self.eval_expr(sprite, x)?;
+                let y = inputs.get("Y").unwrap();
+                let y = self.eval_expr(sprite, y)?;
+                sprite.x.set(x.to_num());
+                sprite.y.set(y.to_num());
+                Ok(())
+            }
             "motion_setx" => {
                 let x = inputs.get("X").unwrap();
                 let x = self.eval_expr(sprite, x)?;
@@ -304,6 +330,10 @@ impl VM {
                 Ok(())
             }
             "looks_hide" => {
+                // TODO: Actually do something
+                Ok(())
+            }
+            "looks_setsizeto" => {
                 // TODO: Actually do something
                 Ok(())
             }
@@ -348,6 +378,17 @@ impl VM {
                     self.eval_expr(sprite, inputs.get("OPERAND").unwrap())?;
                 Ok(Value::Bool(!operand.to_bool()))
             }
+            "operator_or" => {
+                let lhs =
+                    self.eval_expr(sprite, inputs.get("OPERAND1").unwrap())?;
+                if lhs.to_bool() {
+                    Ok(Value::Bool(true))
+                } else {
+                    let rhs = self
+                        .eval_expr(sprite, inputs.get("OPERAND2").unwrap())?;
+                    Ok(Value::Bool(rhs.to_bool()))
+                }
+            }
             "operator_add" => {
                 let lhs =
                     self.eval_expr(sprite, inputs.get("NUM1").unwrap())?;
@@ -355,11 +396,32 @@ impl VM {
                     self.eval_expr(sprite, inputs.get("NUM2").unwrap())?;
                 Ok(Value::Num(lhs.to_num() + rhs.to_num()))
             }
+            "operator_subtract" => {
+                let lhs =
+                    self.eval_expr(sprite, inputs.get("NUM1").unwrap())?;
+                let rhs =
+                    self.eval_expr(sprite, inputs.get("NUM2").unwrap())?;
+                Ok(Value::Num(lhs.to_num() - rhs.to_num()))
+            }
+            "operator_multiply" => {
+                let lhs =
+                    self.eval_expr(sprite, inputs.get("NUM1").unwrap())?;
+                let rhs =
+                    self.eval_expr(sprite, inputs.get("NUM2").unwrap())?;
+                Ok(Value::Num(lhs.to_num() * rhs.to_num()))
+            }
             "operator_length" => {
                 let s =
                     self.eval_expr(sprite, inputs.get("STRING").unwrap())?;
                 // JavaScript uses UTF-16 for some reason
                 Ok(Value::Num(s.to_string().encode_utf16().count() as f64))
+            }
+            "operator_join" => {
+                let lhs =
+                    self.eval_expr(sprite, inputs.get("STRING1").unwrap())?;
+                let rhs =
+                    self.eval_expr(sprite, inputs.get("STRING2").unwrap())?;
+                Ok(Value::Str(format!("{lhs}{rhs}")))
             }
             "motion_xposition" => {
                 // FIXME: This should be rounded
@@ -368,6 +430,23 @@ impl VM {
             "motion_yposition" => {
                 // FIXME: This should be rounded
                 Ok(Value::Num(sprite.y.get()))
+            }
+            "operator_letter_of" => {
+                let s =
+                    self.eval_expr(sprite, inputs.get("STRING").unwrap())?;
+                let index =
+                    self.eval_expr(sprite, inputs.get("LETTER").unwrap())?;
+                // FIXME: This should use UTF-16
+                Ok(
+                    // This should be a `try` block
+                    (|| {
+                        let index = index.to_index()?;
+                        Some(Value::Str(
+                            s.to_string().get(index..=index)?.to_owned(),
+                        ))
+                    })()
+                    .unwrap_or_default(),
+                )
             }
             _ => {
                 dbg!(opcode);

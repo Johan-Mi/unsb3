@@ -90,12 +90,7 @@ impl<'a> DeCtx<'a> {
                     // This should be a `try` block
                     Some((|| {
                         let broadcast_name =
-                            block.fields.get("BROADCAST_OPTION").unwrap();
-                        let arr = broadcast_name.as_array().unwrap();
-                        let broadcast_name = match &arr[..] {
-                            [Json::String(name), Json::Null] => name.to_owned(),
-                            _ => todo!(),
-                        };
+                            str_field(block, "BROADCAST_OPTION")?.to_owned();
                         let body = self.build_statement(next)?;
                         Ok(Proc {
                             signature: Signature::WhenBroadcastReceived {
@@ -113,6 +108,25 @@ impl<'a> DeCtx<'a> {
     fn build_statement(&self, id: &str) -> DeResult<Statement> {
         let block = self.get(id)?;
 
+        if block.next.is_some() {
+            let mut blocks = Vec::new();
+            let mut pending = Some(block);
+
+            while let Some(curr) = pending {
+                blocks.push(self.build_single_statement(curr)?);
+                pending = match &curr.next {
+                    Some(next) => Some(self.get(next)?),
+                    None => None,
+                }
+            }
+
+            Ok(Statement::Do(blocks))
+        } else {
+            self.build_single_statement(block)
+        }
+    }
+
+    fn build_single_statement(&self, block: &Block) -> DeResult<Statement> {
         match &*block.opcode {
             "control_if" => {
                 let condition = self.input(block, "CONDITION")?;
@@ -180,6 +194,11 @@ impl<'a> DeCtx<'a> {
                 let list_id = var_list_field(block, "LIST")?.to_owned();
                 Ok(Statement::DeleteAllOfList { list_id })
             }
+            "data_deleteoflist" => {
+                let list_id = var_list_field(block, "LIST")?.to_owned();
+                let index = self.input(block, "INDEX")?;
+                Ok(Statement::DeleteOfList { list_id, index })
+            }
             "data_addtolist" => {
                 let list_id = var_list_field(block, "LIST")?.to_owned();
                 let item = self.input(block, "ITEM")?;
@@ -199,6 +218,22 @@ impl<'a> DeCtx<'a> {
                 let var_id = var_list_field(block, "VARIABLE")?.to_owned();
                 let value = self.input(block, "VALUE")?;
                 Ok(Statement::SetVariable { var_id, value })
+            }
+            "data_changevariableby" => {
+                let var_id = var_list_field(block, "VARIABLE")?.to_owned();
+                let value = self.input(block, "VALUE")?;
+                Ok(Statement::ChangeVariableBy { var_id, value })
+            }
+            "control_stop" => {
+                let stop_option = str_field(block, "STOP_OPTION")?;
+                match stop_option {
+                    "all" => Ok(Statement::StopAll),
+                    "this script" => Ok(Statement::StopThisScript),
+                    _ => {
+                        dbg!(stop_option);
+                        todo!()
+                    }
+                }
             }
             opcode => {
                 // Field generation has to be done manually for each opcode that uses it
@@ -255,12 +290,7 @@ impl<'a> DeCtx<'a> {
 
         match &*block.opcode {
             "argument_reporter_string_number" => {
-                let name = block.fields.get("VALUE").unwrap();
-                let arr = name.as_array().unwrap();
-                let name = match &arr[..] {
-                    [Json::String(name), Json::Null] => name.to_owned(),
-                    _ => todo!(),
-                };
+                let name = str_field(block, "VALUE")?.to_owned();
                 Ok(Expr::ProcArgStringNumber { name })
             }
             "data_itemoflist" => {
@@ -270,6 +300,31 @@ impl<'a> DeCtx<'a> {
                     list_id,
                     index: Box::new(index),
                 })
+            }
+            "data_lengthoflist" => {
+                let list_id = var_list_field(block, "LIST")?.to_owned();
+                Ok(Expr::LengthOfList { list_id })
+            }
+            "operator_mathop" => {
+                let operator = str_field(block, "OPERATOR")?;
+                let num = self.input(block, "NUM")?;
+                match operator {
+                    "abs" => Ok(Expr::Abs(Box::new(num))),
+                    "floor" => Ok(Expr::Floor(Box::new(num))),
+                    "ceiling" => Ok(Expr::Ceiling(Box::new(num))),
+                    "sqrt" => Ok(Expr::Sqrt(Box::new(num))),
+                    "sin" => Ok(Expr::Sin(Box::new(num))),
+                    "cos" => Ok(Expr::Cos(Box::new(num))),
+                    "tan" => Ok(Expr::Tan(Box::new(num))),
+                    "asin" => Ok(Expr::Asin(Box::new(num))),
+                    "acos" => Ok(Expr::Acos(Box::new(num))),
+                    "atan" => Ok(Expr::Atan(Box::new(num))),
+                    "ln" => Ok(Expr::Ln(Box::new(num))),
+                    "log" => Ok(Expr::Log(Box::new(num))),
+                    "e ^" => Ok(Expr::EExp(Box::new(num))),
+                    "10 ^" => Ok(Expr::TenExp(Box::new(num))),
+                    _ => todo!(),
+                }
             }
             opcode => {
                 // Field generation has to be done manually for each opcode that uses it
@@ -309,13 +364,12 @@ impl<'a> DeCtx<'a> {
     }
 
     fn substack(&self, block: &Block, name: &str) -> DeResult<Statement> {
-        let stack = block
-            .inputs
-            .get(name)
-            .and_then(get_rep)
-            .and_then(Json::as_str)
-            .unwrap();
-        self.build_statement(stack)
+        let id = block.inputs.get(name).and_then(get_rep).unwrap();
+        match id {
+            Json::String(id) => self.build_statement(id),
+            Json::Null => Ok(Statement::Do(Vec::new())),
+            _ => todo!(),
+        }
     }
 }
 
@@ -331,6 +385,14 @@ fn var_list_field<'blk>(block: &'blk Block, name: &str) -> DeResult<&'blk str> {
     let arr = block.fields.get(name).and_then(Json::as_array).unwrap();
     match &arr[..] {
         [Json::String(_), Json::String(id)] => Ok(id),
+        _ => todo!(),
+    }
+}
+
+fn str_field<'blk>(block: &'blk Block, name: &str) -> DeResult<&'blk str> {
+    let arr = block.fields.get(name).and_then(Json::as_array).unwrap();
+    match &arr[..] {
+        [Json::String(s), Json::Null] => Ok(s),
         _ => todo!(),
     }
 }

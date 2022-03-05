@@ -13,6 +13,23 @@ pub(crate) enum Expr {
         list_id: String,
         index: Box<Expr>,
     },
+    LengthOfList {
+        list_id: String,
+    },
+    Abs(Box<Expr>),
+    Floor(Box<Expr>),
+    Ceiling(Box<Expr>),
+    Sqrt(Box<Expr>),
+    Sin(Box<Expr>),
+    Cos(Box<Expr>),
+    Tan(Box<Expr>),
+    Asin(Box<Expr>),
+    Acos(Box<Expr>),
+    Atan(Box<Expr>),
+    Ln(Box<Expr>),
+    Log(Box<Expr>),
+    EExp(Box<Expr>),
+    TenExp(Box<Expr>),
     Call {
         opcode: String,
         inputs: HashMap<String, Expr>,
@@ -55,8 +72,8 @@ impl Value {
         self.try_to_num().unwrap_or(0.0)
     }
 
-    pub(crate) fn to_index(&self) -> usize {
-        (self.to_num() - 1.0) as usize
+    pub(crate) fn to_index(&self) -> Option<usize> {
+        (self.to_num() as usize).checked_sub(1)
     }
 
     pub(crate) fn compare(&self, other: &Self) -> cmp::Ordering {

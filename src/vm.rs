@@ -161,6 +161,17 @@ impl VM {
                     .or_insert_with(Vec::new);
                 Ok(())
             }
+            Statement::DeleteOfList { list_id, index } => {
+                let index = self.eval_expr(sprite, index)?;
+                if let (Some(lst), Some(index)) =
+                    (self.lists.borrow_mut().get_mut(list_id), index.to_index())
+                {
+                    if index < lst.len() {
+                        lst.remove(index);
+                    }
+                }
+                Ok(())
+            }
             Statement::AddToList { list_id, item } => {
                 let item = self.eval_expr(sprite, item)?;
                 self.lists
@@ -176,6 +187,15 @@ impl VM {
                 self.vars.borrow_mut().insert(var_id.to_owned(), value);
                 Ok(())
             }
+            Statement::ChangeVariableBy { var_id, value } => {
+                let value = self.eval_expr(sprite, value)?.to_num();
+                let mut vars = self.vars.borrow_mut();
+                let old = vars.get(var_id).map(Value::to_num).unwrap_or(0.0);
+                vars.insert(var_id.to_owned(), Value::Num(old + value));
+                Ok(())
+            }
+            Statement::StopAll => todo!(),
+            Statement::StopThisScript => todo!(),
         }
     }
 
@@ -197,17 +217,51 @@ impl VM {
                 .unwrap_or_default()),
             Expr::ItemOfList { list_id, index } => {
                 let index = self.eval_expr(sprite, index)?.to_index();
-                Ok(self
-                    .lists
+                Ok(match index {
+                    Some(index) => self
+                        .lists
+                        .borrow()
+                        .get(list_id)
+                        .and_then(|lst| lst.get(index).cloned())
+                        .unwrap_or_default(),
+                    None => Value::default(),
+                })
+            }
+            Expr::LengthOfList { list_id } => Ok(Value::Num(
+                self.lists
                     .borrow()
                     .get(list_id)
-                    .and_then(|lst| lst.get(index).cloned())
-                    .unwrap_or_default())
-            }
+                    .map(|lst| Vec::len(lst) as f64)
+                    .unwrap_or(0.0),
+            )),
+            Expr::Abs(num) => self.mathop(sprite, num, f64::abs),
+            Expr::Floor(num) => self.mathop(sprite, num, f64::floor),
+            Expr::Ceiling(num) => self.mathop(sprite, num, f64::ceil),
+            Expr::Sqrt(num) => self.mathop(sprite, num, f64::sqrt),
+            Expr::Sin(num) => self.mathop(sprite, num, f64::sin),
+            Expr::Cos(num) => self.mathop(sprite, num, f64::cos),
+            Expr::Tan(num) => self.mathop(sprite, num, f64::tan),
+            Expr::Asin(num) => self.mathop(sprite, num, f64::asin),
+            Expr::Acos(num) => self.mathop(sprite, num, f64::acos),
+            Expr::Atan(num) => self.mathop(sprite, num, f64::atan),
+            Expr::Ln(num) => self.mathop(sprite, num, f64::ln),
+            Expr::Log(num) => self.mathop(sprite, num, f64::log10),
+            Expr::EExp(num) => self.mathop(sprite, num, f64::exp),
+            Expr::TenExp(num) => self.mathop(sprite, num, |n| 10.0f64.powf(n)),
             Expr::Call { opcode, inputs } => {
                 self.eval_funcall(sprite, opcode, inputs)
             }
         }
+    }
+
+    fn mathop(
+        &self,
+        sprite: &Sprite,
+        num: &Expr,
+        f: fn(f64) -> f64,
+    ) -> VMResult<Value> {
+        let num = self.eval_expr(sprite, num)?;
+        Ok(Value::Num(f(num.to_num())))
     }
 
     fn call_builtin_statement(

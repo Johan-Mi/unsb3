@@ -40,6 +40,10 @@ pub(crate) enum Statement {
     DeleteAllOfList {
         list_id: String,
     },
+    DeleteOfList {
+        list_id: String,
+        index: Expr,
+    },
     AddToList {
         list_id: String,
         item: Expr,
@@ -53,4 +57,10 @@ pub(crate) enum Statement {
         var_id: String,
         value: Expr,
     },
+    ChangeVariableBy {
+        var_id: String,
+        value: Expr,
+    },
+    StopAll,
+    StopThisScript,
 }

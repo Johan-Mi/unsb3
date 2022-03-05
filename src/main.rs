@@ -25,7 +25,6 @@ fn main() {
             return;
         }
     };
-    println!("{vm:#?}");
 
     match vm.run() {
         Ok(()) => println!("Ran successfully"),

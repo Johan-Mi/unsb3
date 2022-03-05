@@ -66,11 +66,9 @@ impl<'a> DeCtx<'a> {
                             .and_then(Json::as_str)
                             .unwrap();
                         let proto = self.get(proto_id)?;
-                        let param_ids =
-                            proto.inputs.keys().map(Cow::to_string).collect();
                         let mutation = proto.mutation.as_ref().unwrap();
                         let name = mutation.proccode.to_string();
-                        let signature = Signature::Custom { name, param_ids };
+                        let signature = Signature::Custom { name };
                         Ok(Proc { signature, body })
                     })())
                 }

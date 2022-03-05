@@ -36,11 +36,21 @@ pub(crate) enum Expr {
     },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub(crate) enum Value {
     Num(f64),
     Str(String),
     Bool(bool),
+}
+
+impl fmt::Debug for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Value::Num(num) => fmt::Debug::fmt(num, f),
+            Value::Str(s) => fmt::Debug::fmt(s, f),
+            Value::Bool(b) => fmt::Debug::fmt(b, f),
+        }
+    }
 }
 
 impl Default for Value {

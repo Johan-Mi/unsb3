@@ -18,4 +18,10 @@ impl Proc {
         matches!(&self.signature,
             Signature::Custom { name: my_name, .. } if my_name == name)
     }
+
+    pub fn is_the_broadcast(&self, name: &str) -> bool {
+        matches!(&self.signature,
+            Signature::WhenBroadcastReceived { broadcast_name, .. }
+                if broadcast_name == name)
+    }
 }

@@ -299,6 +299,19 @@ impl VM {
         inputs: &HashMap<String, Expr>,
     ) -> VMResult<()> {
         match opcode {
+            "event_broadcastandwait" => {
+                let broadcast_name = inputs.get("BROADCAST_INPUT").unwrap();
+                let broadcast_name =
+                    self.eval_expr(sprite, broadcast_name)?.to_string();
+                for spr in self.sprites.values() {
+                    for proc in &spr.procs {
+                        if proc.is_the_broadcast(&broadcast_name) {
+                            self.run_proc(spr, proc)?;
+                        }
+                    }
+                }
+                Ok(())
+            }
             "motion_gotoxy" => {
                 let x = inputs.get("X").unwrap();
                 let x = self.eval_expr(sprite, x)?;

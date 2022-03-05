@@ -5,7 +5,7 @@ use crate::{
     statement::Statement,
 };
 use serde::{Deserialize, Deserializer};
-use std::{cell::RefCell, cmp, collections::HashMap};
+use std::{cell::RefCell, cmp, collections::HashMap, ops};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct VM {
@@ -281,6 +281,17 @@ impl VM {
         Ok(Value::Num(f(num.to_num())))
     }
 
+    fn bin_num_op(
+        &self,
+        sprite: &Sprite,
+        inputs: &HashMap<String, Expr>,
+        f: fn(f64, f64) -> f64,
+    ) -> VMResult<Value> {
+        let lhs = self.eval_expr(sprite, inputs.get("NUM1").unwrap())?;
+        let rhs = self.eval_expr(sprite, inputs.get("NUM2").unwrap())?;
+        Ok(Value::Num(f(lhs.to_num(), rhs.to_num())))
+    }
+
     fn call_builtin_statement(
         &self,
         sprite: &Sprite,
@@ -389,26 +400,12 @@ impl VM {
                     Ok(Value::Bool(rhs.to_bool()))
                 }
             }
-            "operator_add" => {
-                let lhs =
-                    self.eval_expr(sprite, inputs.get("NUM1").unwrap())?;
-                let rhs =
-                    self.eval_expr(sprite, inputs.get("NUM2").unwrap())?;
-                Ok(Value::Num(lhs.to_num() + rhs.to_num()))
-            }
+            "operator_add" => self.bin_num_op(sprite, inputs, ops::Add::add),
             "operator_subtract" => {
-                let lhs =
-                    self.eval_expr(sprite, inputs.get("NUM1").unwrap())?;
-                let rhs =
-                    self.eval_expr(sprite, inputs.get("NUM2").unwrap())?;
-                Ok(Value::Num(lhs.to_num() - rhs.to_num()))
+                self.bin_num_op(sprite, inputs, ops::Sub::sub)
             }
             "operator_multiply" => {
-                let lhs =
-                    self.eval_expr(sprite, inputs.get("NUM1").unwrap())?;
-                let rhs =
-                    self.eval_expr(sprite, inputs.get("NUM2").unwrap())?;
-                Ok(Value::Num(lhs.to_num() * rhs.to_num()))
+                self.bin_num_op(sprite, inputs, ops::Mul::mul)
             }
             "operator_length" => {
                 let s =

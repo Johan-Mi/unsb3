@@ -163,13 +163,23 @@ impl VM {
             }
             Statement::DeleteOfList { list_id, index } => {
                 let index = self.eval_expr(sprite, index)?;
-                if let (Some(lst), Some(index)) =
-                    (self.lists.borrow_mut().get_mut(list_id), index.to_index())
-                {
-                    if index < lst.len() {
-                        lst.remove(index);
+                // This should be a `try` block
+                (|| {
+                    let mut lists = self.lists.borrow_mut();
+                    let lst = lists.get_mut(list_id)?;
+                    let index = index.to_index()?;
+                    match index {
+                        Index::Nth(i) => {
+                            if i < lst.len() {
+                                lst.remove(i);
+                            }
+                        }
+                        Index::Last => {
+                            lst.pop();
+                        }
                     }
-                }
+                    Some(())
+                })();
                 Ok(())
             }
             Statement::AddToList { list_id, item } => {
@@ -193,7 +203,10 @@ impl VM {
                 (|| {
                     let lst = lists.get_mut(list_id)?;
                     let index = index.to_index()?;
-                    let slot = lst.get_mut(index)?;
+                    let slot = match index {
+                        Index::Nth(i) => lst.get_mut(i),
+                        Index::Last => lst.last_mut(),
+                    }?;
                     *slot = item;
                     Some(())
                 })();
@@ -233,16 +246,19 @@ impl VM {
                 .and_then(|stack| stack.last().cloned())
                 .unwrap_or_default()),
             Expr::ItemOfList { list_id, index } => {
-                let index = self.eval_expr(sprite, index)?.to_index();
-                Ok(match index {
-                    Some(index) => self
-                        .lists
-                        .borrow()
-                        .get(list_id)
-                        .and_then(|lst| lst.get(index).cloned())
-                        .unwrap_or_default(),
-                    None => Value::default(),
-                })
+                let index = self.eval_expr(sprite, index)?;
+                // This should be a `try` block
+                Ok((|| {
+                    let lists = self.lists.borrow();
+                    let lst = lists.get(list_id)?;
+                    let index = index.to_index()?;
+                    match index {
+                        Index::Nth(i) => lst.get(i),
+                        Index::Last => lst.last(),
+                    }
+                    .cloned()
+                })()
+                .unwrap_or_default())
             }
             Expr::LengthOfList { list_id } => Ok(Value::Num(
                 self.lists
@@ -451,9 +467,12 @@ impl VM {
                     // This should be a `try` block
                     (|| {
                         let index = index.to_index()?;
-                        Some(Value::Str(
-                            s.to_string().get(index..=index)?.to_owned(),
-                        ))
+                        match index {
+                            Index::Nth(i) => Some(Value::Str(
+                                s.to_string().get(i..=i)?.to_owned(),
+                            )),
+                            _ => None,
+                        }
                     })()
                     .unwrap_or_default(),
                 )

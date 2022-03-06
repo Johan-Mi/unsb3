@@ -59,6 +59,11 @@ impl Default for Value {
     }
 }
 
+pub(crate) enum Index {
+    Nth(usize),
+    Last,
+}
+
 impl Value {
     pub(crate) fn to_bool(&self) -> bool {
         match self {
@@ -82,8 +87,12 @@ impl Value {
         self.try_to_num().unwrap_or(0.0)
     }
 
-    pub(crate) fn to_index(&self) -> Option<usize> {
-        (self.to_num() as usize).checked_sub(1)
+    pub(crate) fn to_index(&self) -> Option<Index> {
+        // TODO: Handle "all", "random" and "any"
+        match self {
+            Value::Str(s) if s == "last" => Some(Index::Last),
+            _ => (self.to_num() as usize).checked_sub(1).map(Index::Nth),
+        }
     }
 
     pub(crate) fn compare(&self, other: &Self) -> cmp::Ordering {

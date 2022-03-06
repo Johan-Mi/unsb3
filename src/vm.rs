@@ -381,7 +381,7 @@ impl VM {
                     self.eval_expr(sprite, inputs.get("OPERAND1").unwrap())?;
                 let rhs =
                     self.eval_expr(sprite, inputs.get("OPERAND2").unwrap())?;
-                Ok(Value::Bool(lhs.compare(&rhs) == cmp::Ordering::Greater))
+                Ok(Value::Bool(lhs.compare(&rhs) == cmp::Ordering::Equal))
             }
             "operator_lt" => {
                 let lhs =

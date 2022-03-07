@@ -91,7 +91,9 @@ impl Value {
         // TODO: Handle "all", "random" and "any"
         match self {
             Value::Str(s) if s == "last" => Some(Index::Last),
-            _ => (self.to_num() as usize).checked_sub(1).map(Index::Nth),
+            _ => self
+                .try_to_num()
+                .and_then(|n| (n as usize).checked_sub(1).map(Index::Nth)),
         }
     }
 

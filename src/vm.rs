@@ -65,7 +65,6 @@ impl VM {
     }
 
     fn run_statement(&self, sprite: &Sprite, stmt: &Statement) -> VMResult<()> {
-        dbg!(stmt);
         match stmt {
             Statement::Builtin { opcode, inputs } => {
                 self.call_builtin_statement(sprite, opcode, inputs)

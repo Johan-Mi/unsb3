@@ -1,4 +1,5 @@
 use crate::statement::Statement;
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub(crate) struct Proc {
@@ -8,9 +9,14 @@ pub(crate) struct Proc {
 
 #[derive(Debug)]
 pub(crate) enum Signature {
-    Custom { name: String },
+    Custom {
+        name: String,
+        arg_names_by_id: HashMap<String, String>,
+    },
     WhenFlagClicked,
-    WhenBroadcastReceived { broadcast_name: String },
+    WhenBroadcastReceived {
+        broadcast_name: String,
+    },
 }
 
 impl Proc {

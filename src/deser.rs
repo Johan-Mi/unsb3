@@ -43,6 +43,8 @@ pub(crate) struct Block<'a> {
 #[derive(Debug, Deserialize)]
 pub(crate) struct Mutation<'a> {
     proccode: Cow<'a, str>,
+    argumentids: String,
+    argumentnames: Option<String>,
 }
 
 impl<'a> DeCtx<'a> {
@@ -68,7 +70,21 @@ impl<'a> DeCtx<'a> {
                         let proto = self.get(proto_id)?;
                         let mutation = proto.mutation.as_ref().unwrap();
                         let name = mutation.proccode.to_string();
-                        let signature = Signature::Custom { name };
+                        let arg_ids: Vec<String> =
+                            serde_json::from_str(&mutation.argumentids)
+                                .unwrap();
+                        let arg_names: Vec<String> = serde_json::from_str(
+                            mutation.argumentnames.as_ref().unwrap(),
+                        )
+                        .unwrap();
+                        let arg_names_by_id = arg_ids
+                            .into_iter()
+                            .zip(arg_names.into_iter())
+                            .collect();
+                        let signature = Signature::Custom {
+                            name,
+                            arg_names_by_id,
+                        };
                         Ok(Proc { signature, body })
                     })())
                 }

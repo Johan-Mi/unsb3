@@ -1,5 +1,5 @@
 use crate::{
-    expr::{Expr, Value},
+    expr::{Expr, Index, Value},
     proc::{Proc, Signature},
     sprite::Sprite,
     statement::Statement,
@@ -65,6 +65,7 @@ impl VM {
     }
 
     fn run_statement(&self, sprite: &Sprite, stmt: &Statement) -> VMResult<()> {
+        dbg!(stmt);
         match stmt {
             Statement::Builtin { opcode, inputs } => {
                 self.call_builtin_statement(sprite, opcode, inputs)
@@ -130,12 +131,18 @@ impl VM {
             Statement::ProcCall { proccode, args } => {
                 let proc =
                     sprite.procs.iter().find(|p| p.name_is(proccode)).unwrap();
+                let arg_names_by_id = match &proc.signature {
+                    Signature::Custom {
+                        arg_names_by_id, ..
+                    } => arg_names_by_id,
+                    _ => todo!(),
+                };
 
                 for (id, arg) in args {
                     let arg = self.eval_expr(sprite, arg)?;
                     self.proc_args
                         .borrow_mut()
-                        .entry(id.to_string())
+                        .entry(arg_names_by_id.get(id).unwrap().clone())
                         .or_insert_with(|| Vec::with_capacity(1))
                         .push(arg);
                 }
@@ -143,7 +150,10 @@ impl VM {
                 self.run_proc(sprite, proc)?;
 
                 for id in args.keys() {
-                    if let Some(stack) = self.proc_args.borrow_mut().get_mut(id)
+                    if let Some(stack) = self
+                        .proc_args
+                        .borrow_mut()
+                        .get_mut(arg_names_by_id.get(id).unwrap())
                     {
                         stack.pop();
                     }

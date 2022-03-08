@@ -16,6 +16,27 @@ pub(crate) struct Sprite {
     pub y: Cell<f64>,
 }
 
+pub(crate) fn deserialize_sprites<'de, D>(
+    deserializer: D,
+) -> Result<HashMap<String, Sprite>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    struct NamedSprite {
+        name: String,
+        #[serde(flatten)]
+        inner: Sprite,
+    }
+
+    let sprites = <Vec<NamedSprite>>::deserialize(deserializer)?;
+
+    Ok(sprites
+        .into_iter()
+        .map(|NamedSprite { name, inner }| (name, inner))
+        .collect())
+}
+
 fn deserialize_blocks<'de, D>(deserializer: D) -> Result<Vec<Proc>, D::Error>
 where
     D: Deserializer<'de>,

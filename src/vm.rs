@@ -4,14 +4,14 @@ use crate::{
     sprite::Sprite,
     statement::Statement,
 };
-use serde::{Deserialize, Deserializer};
+use serde::Deserialize;
 use std::{cell::RefCell, cmp, collections::HashMap, io::Write, ops};
 use thiserror::Error;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct VM {
     #[serde(rename = "targets")]
-    #[serde(deserialize_with = "deserialize_sprites")]
+    #[serde(deserialize_with = "crate::sprite::deserialize_sprites")]
     sprites: HashMap<String, Sprite>,
     #[serde(skip_deserializing)]
     // FIXME: this should be deserialized from the sprites
@@ -23,27 +23,6 @@ pub(crate) struct VM {
     proc_args: RefCell<HashMap<String, Vec<Value>>>,
     #[serde(skip_deserializing)]
     answer: RefCell<String>,
-}
-
-fn deserialize_sprites<'de, D>(
-    deserializer: D,
-) -> Result<HashMap<String, Sprite>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    #[derive(Deserialize)]
-    struct NamedSprite {
-        name: String,
-        #[serde(flatten)]
-        inner: Sprite,
-    }
-
-    let sprites = <Vec<NamedSprite>>::deserialize(deserializer)?;
-
-    Ok(sprites
-        .into_iter()
-        .map(|NamedSprite { name, inner }| (name, inner))
-        .collect())
 }
 
 #[derive(Debug, Error)]
@@ -342,9 +321,18 @@ impl VM {
         inputs: &HashMap<String, Expr>,
         f: fn(f64, f64) -> f64,
     ) -> VMResult<Value> {
-        let lhs = self.eval_expr(sprite, inputs.get("NUM1").unwrap())?;
-        let rhs = self.eval_expr(sprite, inputs.get("NUM2").unwrap())?;
-        Ok(Value::Num(f(lhs.to_num(), rhs.to_num())))
+        let lhs = self.input(sprite, inputs, "NUM1")?.to_num();
+        let rhs = self.input(sprite, inputs, "NUM2")?.to_num();
+        Ok(Value::Num(f(lhs, rhs)))
+    }
+
+    fn input(
+        &self,
+        sprite: &Sprite,
+        inputs: &HashMap<String, Expr>,
+        name: &str,
+    ) -> VMResult<Value> {
+        self.eval_expr(sprite, inputs.get(name).unwrap())
     }
 
     fn call_builtin_statement(
@@ -355,9 +343,8 @@ impl VM {
     ) -> VMResult<()> {
         match opcode {
             "event_broadcastandwait" => {
-                let broadcast_name = inputs.get("BROADCAST_INPUT").unwrap();
                 let broadcast_name =
-                    self.eval_expr(sprite, broadcast_name)?.to_string();
+                    self.input(sprite, inputs, "BROADCAST_INPUT")?.to_string();
                 for spr in self.sprites.values() {
                     for proc in &spr.procs {
                         if proc.is_the_broadcast(&broadcast_name) {
@@ -368,36 +355,30 @@ impl VM {
                 Ok(())
             }
             "motion_gotoxy" => {
-                let x = inputs.get("X").unwrap();
-                let x = self.eval_expr(sprite, x)?;
-                let y = inputs.get("Y").unwrap();
-                let y = self.eval_expr(sprite, y)?;
-                sprite.x.set(x.to_num());
-                sprite.y.set(y.to_num());
+                let x = self.input(sprite, inputs, "X")?.to_num();
+                let y = self.input(sprite, inputs, "Y")?.to_num();
+                sprite.x.set(x);
+                sprite.y.set(y);
                 Ok(())
             }
             "motion_setx" => {
-                let x = inputs.get("X").unwrap();
-                let x = self.eval_expr(sprite, x)?;
-                sprite.x.set(x.to_num());
+                let x = self.input(sprite, inputs, "X")?.to_num();
+                sprite.x.set(x);
                 Ok(())
             }
             "motion_sety" => {
-                let y = inputs.get("Y").unwrap();
-                let y = self.eval_expr(sprite, y)?;
-                sprite.y.set(y.to_num());
+                let y = self.input(sprite, inputs, "Y")?.to_num();
+                sprite.y.set(y);
                 Ok(())
             }
             "motion_changexby" => {
-                let dx = inputs.get("DX").unwrap();
-                let dx = self.eval_expr(sprite, dx)?;
-                sprite.x.set(sprite.x.get() + dx.to_num());
+                let dx = self.input(sprite, inputs, "DX")?.to_num();
+                sprite.x.set(sprite.x.get() + dx);
                 Ok(())
             }
             "motion_changeyby" => {
-                let dy = inputs.get("DY").unwrap();
-                let dy = self.eval_expr(sprite, dy)?;
-                sprite.y.set(sprite.y.get() + dy.to_num());
+                let dy = self.input(sprite, inputs, "DY")?.to_num();
+                sprite.y.set(sprite.y.get() + dy);
                 Ok(())
             }
             "pen_clear" => {
@@ -425,8 +406,7 @@ impl VM {
                 Ok(())
             }
             "sensing_askandwait" => {
-                let question = inputs.get("QUESTION").unwrap();
-                let question = self.eval_expr(sprite, question)?;
+                let question = self.input(sprite, inputs, "QUESTION")?;
                 print!("{question}");
                 let mut answer = String::new();
                 std::io::stdout().flush().unwrap();
@@ -450,49 +430,38 @@ impl VM {
     ) -> VMResult<Value> {
         match opcode {
             "operator_equals" => {
-                let lhs =
-                    self.eval_expr(sprite, inputs.get("OPERAND1").unwrap())?;
-                let rhs =
-                    self.eval_expr(sprite, inputs.get("OPERAND2").unwrap())?;
+                let lhs = self.input(sprite, inputs, "OPERAND1")?;
+                let rhs = self.input(sprite, inputs, "OPERAND2")?;
                 Ok(Value::Bool(lhs.compare(&rhs) == cmp::Ordering::Equal))
             }
             "operator_lt" => {
-                let lhs =
-                    self.eval_expr(sprite, inputs.get("OPERAND1").unwrap())?;
-                let rhs =
-                    self.eval_expr(sprite, inputs.get("OPERAND2").unwrap())?;
+                let lhs = self.input(sprite, inputs, "OPERAND1")?;
+                let rhs = self.input(sprite, inputs, "OPERAND2")?;
                 Ok(Value::Bool(lhs.compare(&rhs) == cmp::Ordering::Less))
             }
             "operator_gt" => {
-                let lhs =
-                    self.eval_expr(sprite, inputs.get("OPERAND1").unwrap())?;
-                let rhs =
-                    self.eval_expr(sprite, inputs.get("OPERAND2").unwrap())?;
+                let lhs = self.input(sprite, inputs, "OPERAND1")?;
+                let rhs = self.input(sprite, inputs, "OPERAND2")?;
                 Ok(Value::Bool(lhs.compare(&rhs) == cmp::Ordering::Greater))
             }
             "operator_not" => {
-                let operand =
-                    self.eval_expr(sprite, inputs.get("OPERAND").unwrap())?;
-                Ok(Value::Bool(!operand.to_bool()))
+                let operand = self.input(sprite, inputs, "OPERAND")?.to_bool();
+                Ok(Value::Bool(!operand))
             }
             "operator_or" => {
-                let lhs =
-                    self.eval_expr(sprite, inputs.get("OPERAND1").unwrap())?;
-                if lhs.to_bool() {
+                let lhs = self.input(sprite, inputs, "OPERAND1")?.to_bool();
+                if lhs {
                     Ok(Value::Bool(true))
                 } else {
-                    let rhs = self
-                        .eval_expr(sprite, inputs.get("OPERAND2").unwrap())?;
-                    Ok(Value::Bool(rhs.to_bool()))
+                    let rhs = self.input(sprite, inputs, "OPERAND2")?.to_bool();
+                    Ok(Value::Bool(rhs))
                 }
             }
             "operator_and" => {
-                let lhs =
-                    self.eval_expr(sprite, inputs.get("OPERAND1").unwrap())?;
-                if lhs.to_bool() {
-                    let rhs = self
-                        .eval_expr(sprite, inputs.get("OPERAND2").unwrap())?;
-                    Ok(Value::Bool(rhs.to_bool()))
+                let lhs = self.input(sprite, inputs, "OPERAND1")?.to_bool();
+                if lhs {
+                    let rhs = self.input(sprite, inputs, "OPERAND2")?.to_bool();
+                    Ok(Value::Bool(rhs))
                 } else {
                     Ok(Value::Bool(false))
                 }
@@ -511,10 +480,8 @@ impl VM {
                 Ok(Value::Num(s.to_string().len() as f64))
             }
             "operator_join" => {
-                let lhs =
-                    self.eval_expr(sprite, inputs.get("STRING1").unwrap())?;
-                let rhs =
-                    self.eval_expr(sprite, inputs.get("STRING2").unwrap())?;
+                let lhs = self.input(sprite, inputs, "STRING1")?;
+                let rhs = self.input(sprite, inputs, "STRING2")?;
                 Ok(Value::Str(format!("{lhs}{rhs}")))
             }
             "motion_xposition" => {
@@ -526,10 +493,8 @@ impl VM {
                 Ok(Value::Num(sprite.y.get()))
             }
             "operator_letter_of" => {
-                let s =
-                    self.eval_expr(sprite, inputs.get("STRING").unwrap())?;
-                let index =
-                    self.eval_expr(sprite, inputs.get("LETTER").unwrap())?;
+                let s = self.input(sprite, inputs, "STRING")?;
+                let index = self.input(sprite, inputs, "LETTER")?;
                 Ok(
                     // This should be a `try` block
                     (|| {

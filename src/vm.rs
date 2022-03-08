@@ -5,7 +5,8 @@ use crate::{
     statement::Statement,
 };
 use serde::{Deserialize, Deserializer};
-use std::{cell::RefCell, cmp, collections::HashMap, ops};
+use std::{cell::RefCell, cmp, collections::HashMap, io::Write, ops};
+use thiserror::Error;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct VM {
@@ -20,6 +21,8 @@ pub(crate) struct VM {
     lists: RefCell<HashMap<String, Vec<Value>>>,
     #[serde(skip_deserializing)]
     proc_args: RefCell<HashMap<String, Vec<Value>>>,
+    #[serde(skip_deserializing)]
+    answer: RefCell<String>,
 }
 
 fn deserialize_sprites<'de, D>(
@@ -43,25 +46,52 @@ where
         .collect())
 }
 
-type VMResult<T> = Result<T, String>; // TODO: Proper error type
+#[derive(Debug, Error)]
+pub(crate) enum VMError {
+    #[error("stopped this script")]
+    StopThisScript,
+    #[error("stopped all scripts")]
+    StopAll,
+}
+
+type VMResult<T> = Result<T, VMError>;
 
 impl VM {
     pub fn run(&self) -> VMResult<()> {
         println!("Running vm...");
 
-        for spr in self.sprites.values() {
-            for proc in &spr.procs {
-                if let Signature::WhenFlagClicked = proc.signature {
-                    self.run_proc(spr, proc)?;
+        // This should be a `try` block
+        let res = (|| {
+            for spr in self.sprites.values() {
+                for proc in &spr.procs {
+                    if let Signature::WhenFlagClicked = proc.signature {
+                        self.run_proc(spr, proc)?;
+                    }
                 }
             }
-        }
+            Ok(())
+        })();
 
-        Ok(())
+        match res {
+            Err(VMError::StopAll) => Ok(()),
+            res => res,
+        }
     }
 
     fn run_proc(&self, sprite: &Sprite, proc: &Proc) -> VMResult<()> {
-        self.run_statement(sprite, &proc.body)
+        if proc.name_is("putchar %s") {
+            let proc_args = self.proc_args.borrow();
+            if let Some(chr) =
+                proc_args.get("char").and_then(|stack| stack.last())
+            {
+                print!("{chr}");
+                std::io::stdout().flush().unwrap();
+            }
+        }
+        match self.run_statement(sprite, &proc.body) {
+            Err(VMError::StopThisScript) => Ok(()),
+            res => res,
+        }
     }
 
     fn run_statement(&self, sprite: &Sprite, stmt: &Statement) -> VMResult<()> {
@@ -233,8 +263,8 @@ impl VM {
                 vars.insert(var_id.to_owned(), Value::Num(old + value));
                 Ok(())
             }
-            Statement::StopAll => todo!(),
-            Statement::StopThisScript => todo!(),
+            Statement::StopAll => Err(VMError::StopAll),
+            Statement::StopThisScript => Err(VMError::StopThisScript),
         }
     }
 
@@ -374,6 +404,10 @@ impl VM {
                 // TODO: Actually do something
                 Ok(())
             }
+            "pen_stamp" => {
+                // TODO: Actually do something
+                Ok(())
+            }
             "looks_show" => {
                 // TODO: Actually do something
                 Ok(())
@@ -384,6 +418,20 @@ impl VM {
             }
             "looks_setsizeto" => {
                 // TODO: Actually do something
+                Ok(())
+            }
+            "looks_switchcostumeto" => {
+                // TODO: Actually do something
+                Ok(())
+            }
+            "sensing_askandwait" => {
+                let question = inputs.get("QUESTION").unwrap();
+                let question = self.eval_expr(sprite, question)?;
+                print!("{question}");
+                let mut answer = String::new();
+                std::io::stdout().flush().unwrap();
+                std::io::stdin().read_line(&mut answer).unwrap();
+                self.answer.replace(answer.trim().to_owned());
                 Ok(())
             }
             _ => {
@@ -497,6 +545,7 @@ impl VM {
                     .unwrap_or_default(),
                 )
             }
+            "sensing_answer" => Ok(Value::Str(self.answer.borrow().clone())),
             _ => {
                 dbg!(opcode);
                 dbg!(inputs);

@@ -508,8 +508,7 @@ impl VM {
             "operator_length" => {
                 let s =
                     self.eval_expr(sprite, inputs.get("STRING").unwrap())?;
-                // JavaScript uses UTF-16 for some reason
-                Ok(Value::Num(s.to_string().encode_utf16().count() as f64))
+                Ok(Value::Num(s.to_string().len() as f64))
             }
             "operator_join" => {
                 let lhs =
@@ -531,14 +530,13 @@ impl VM {
                     self.eval_expr(sprite, inputs.get("STRING").unwrap())?;
                 let index =
                     self.eval_expr(sprite, inputs.get("LETTER").unwrap())?;
-                // FIXME: This should use UTF-16
                 Ok(
                     // This should be a `try` block
                     (|| {
                         let index = index.to_index()?;
                         match index {
                             Index::Nth(i) => Some(Value::Str(
-                                s.to_string().get(i..=i)?.to_owned(),
+                                s.to_string().chars().nth(i)?.to_string(),
                             )),
                             _ => None,
                         }

@@ -504,6 +504,7 @@ impl VM {
             "operator_multiply" => {
                 self.bin_num_op(sprite, inputs, ops::Mul::mul)
             }
+            "operator_divide" => self.bin_num_op(sprite, inputs, ops::Div::div),
             "operator_length" => {
                 let s =
                     self.eval_expr(sprite, inputs.get("STRING").unwrap())?;

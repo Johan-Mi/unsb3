@@ -438,6 +438,17 @@ impl VM {
                     Ok(Value::Bool(rhs.to_bool()))
                 }
             }
+            "operator_and" => {
+                let lhs =
+                    self.eval_expr(sprite, inputs.get("OPERAND1").unwrap())?;
+                if lhs.to_bool() {
+                    let rhs = self
+                        .eval_expr(sprite, inputs.get("OPERAND2").unwrap())?;
+                    Ok(Value::Bool(rhs.to_bool()))
+                } else {
+                    Ok(Value::Bool(false))
+                }
+            }
             "operator_add" => self.bin_num_op(sprite, inputs, ops::Add::add),
             "operator_subtract" => {
                 self.bin_num_op(sprite, inputs, ops::Sub::sub)

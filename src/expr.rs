@@ -132,5 +132,11 @@ impl fmt::Display for Value {
 
 fn number_to_string(num: f64) -> String {
     // FIXME: Rust does not format floats the same way as JavaScript.
-    num.to_string()
+    if num == f64::INFINITY {
+        "Infinity".to_owned()
+    } else if num == f64::NEG_INFINITY {
+        "-Infinity".to_owned()
+    } else {
+        num.to_string()
+    }
 }

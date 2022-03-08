@@ -77,6 +77,7 @@ impl Value {
 
     pub(crate) fn try_to_num(&self) -> Option<f64> {
         match self {
+            Value::Num(num) if num.is_nan() => None,
             Value::Num(num) => Some(*num),
             Value::Str(s) => try_str_to_num(s),
             Value::Bool(b) => Some(if *b { 1.0 } else { 0.0 }),
@@ -116,7 +117,7 @@ pub(crate) fn try_str_to_num(s: &str) -> Option<f64> {
         "Infinity" | "+Infinity" => Some(f64::INFINITY),
         "-Infinity" => Some(f64::NEG_INFINITY),
         "inf" | "+inf" | "-inf" => None,
-        s => s.parse().ok(),
+        s => s.parse().ok().filter(|n: &f64| !n.is_nan()),
     }
 }
 

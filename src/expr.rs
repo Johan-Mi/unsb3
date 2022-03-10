@@ -102,7 +102,10 @@ impl Value {
         if let (Some(lhsn), Some(rhsn)) =
             (self.try_to_num(), other.try_to_num())
         {
-            lhsn.partial_cmp(&rhsn).unwrap()
+            match lhsn.partial_cmp(&rhsn) {
+                Some(ord) => ord,
+                None => panic!("could not compare {lhsn} with {rhsn}"),
+            }
         } else {
             // TODO: Do this without allocating new strings
             self.to_string()

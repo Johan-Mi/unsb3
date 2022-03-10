@@ -18,6 +18,8 @@ pub(crate) enum DeError {
     Custom(String),
     #[error("found no block with ID `{0}`")]
     NonExsistentID(String),
+    #[error("missing mutation for block that requires it")]
+    MissingMutation,
 }
 
 type DeResult<T> = Result<T, DeError>;
@@ -66,17 +68,23 @@ impl<'a> DeCtx<'a> {
                             .get("custom_block")
                             .and_then(get_rep)
                             .and_then(Json::as_str)
-                            .unwrap();
+                            .expect("missing prototype for custom block");
                         let proto = self.get(proto_id)?;
-                        let mutation = proto.mutation.as_ref().unwrap();
+                        let mutation = proto
+                            .mutation
+                            .as_ref()
+                            .ok_or(DeError::MissingMutation)?;
                         let name = mutation.proccode.to_string();
                         let arg_ids: Vec<String> =
                             serde_json::from_str(&mutation.argumentids)
-                                .unwrap();
+                                .expect("argumentids was not valid JSON");
                         let arg_names: Vec<String> = serde_json::from_str(
-                            mutation.argumentnames.as_ref().unwrap(),
+                            mutation
+                                .argumentnames
+                                .as_ref()
+                                .expect("missing argumentnames"),
                         )
-                        .unwrap();
+                        .expect("argumentnames was not valid JSON");
                         let arg_names_by_id = arg_ids
                             .into_iter()
                             .zip(arg_names.into_iter())
@@ -193,7 +201,8 @@ impl<'a> DeCtx<'a> {
                 })
             }
             "procedures_call" => {
-                let mutation = block.mutation.as_ref().unwrap();
+                let mutation =
+                    block.mutation.as_ref().ok_or(DeError::MissingMutation)?;
                 let proccode = mutation.proccode.to_string();
                 let args = block
                     .inputs
@@ -270,7 +279,7 @@ impl<'a> DeCtx<'a> {
     }
 
     fn build_expr(&self, json: &Json) -> DeResult<Expr> {
-        let rep = get_rep(json).unwrap();
+        let rep = get_rep(json).expect("invalid reporter");
         match rep {
             Json::String(id) => self.build_funcall(id),
             Json::Array(arr) => match &arr[..] {
@@ -378,7 +387,10 @@ impl<'a> DeCtx<'a> {
     }
 
     fn substack(&self, block: &Block, name: &str) -> DeResult<Statement> {
-        let id = block.inputs.get(name).and_then(get_rep).unwrap();
+        let id = match block.inputs.get(name).and_then(get_rep) {
+            Some(id) => id,
+            None => todo!(),
+        };
         match id {
             Json::String(id) => self.build_statement(id),
             Json::Null => Ok(Statement::Do(Vec::new())),
@@ -396,7 +408,11 @@ fn get_rep(json: &Json) -> Option<&Json> {
 }
 
 fn var_list_field<'blk>(block: &'blk Block, name: &str) -> DeResult<&'blk str> {
-    let arr = block.fields.get(name).and_then(Json::as_array).unwrap();
+    let arr = block
+        .fields
+        .get(name)
+        .and_then(Json::as_array)
+        .expect("invalid field");
     match &arr[..] {
         [Json::String(_), Json::String(id)] => Ok(id),
         _ => todo!(),
@@ -404,7 +420,11 @@ fn var_list_field<'blk>(block: &'blk Block, name: &str) -> DeResult<&'blk str> {
 }
 
 fn str_field<'blk>(block: &'blk Block, name: &str) -> DeResult<&'blk str> {
-    let arr = block.fields.get(name).and_then(Json::as_array).unwrap();
+    let arr = block
+        .fields
+        .get(name)
+        .and_then(Json::as_array)
+        .expect("invalid field");
     match &arr[..] {
         [Json::String(s), Json::Null] => Ok(s),
         _ => todo!(),

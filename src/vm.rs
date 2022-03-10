@@ -31,6 +31,8 @@ pub(crate) enum VMError {
     StopThisScript,
     #[error("stopped all scripts")]
     StopAll,
+    #[error("IO error: {0}")]
+    IOError(std::io::Error),
 }
 
 type VMResult<T> = Result<T, VMError>;
@@ -64,7 +66,7 @@ impl VM {
                 proc_args.get("char").and_then(|stack| stack.last())
             {
                 print!("{chr}");
-                std::io::stdout().flush().unwrap();
+                std::io::stdout().flush().map_err(VMError::IOError)?;
             }
         }
         match self.run_statement(sprite, &proc.body) {
@@ -137,8 +139,11 @@ impl VM {
                 Ok(())
             }
             Statement::ProcCall { proccode, args } => {
-                let proc =
-                    sprite.procs.iter().find(|p| p.name_is(proccode)).unwrap();
+                let proc = sprite
+                    .procs
+                    .iter()
+                    .find(|p| p.name_is(proccode))
+                    .expect("called non-existent custom procedure");
                 let arg_names_by_id = match &proc.signature {
                     Signature::Custom {
                         arg_names_by_id, ..
@@ -409,8 +414,10 @@ impl VM {
                 let question = self.input(sprite, inputs, "QUESTION")?;
                 print!("{question}");
                 let mut answer = String::new();
-                std::io::stdout().flush().unwrap();
-                std::io::stdin().read_line(&mut answer).unwrap();
+                std::io::stdout().flush().map_err(VMError::IOError)?;
+                std::io::stdin()
+                    .read_line(&mut answer)
+                    .map_err(VMError::IOError)?;
                 self.answer.replace(answer.trim().to_owned());
                 Ok(())
             }

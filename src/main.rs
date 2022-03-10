@@ -1,3 +1,5 @@
+#![warn(clippy::unwrap_used)]
+
 use crate::vm::VM;
 use std::fs::File;
 

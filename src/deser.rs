@@ -290,13 +290,13 @@ impl<'a> DeCtx<'a> {
                         Json::String(s) => s,
                         _ => todo!(),
                     };
-                    Ok(Expr::Lit(Value::Str(s.to_owned())))
+                    Ok(Expr::Lit(Value::Str(s.clone())))
                 }
                 [Json::Number(n), Json::String(_), Json::String(var_id)]
                     if n == &serde_json::Number::from(12u32) =>
                 {
                     Ok(Expr::GetVar {
-                        var_id: var_id.to_owned(),
+                        var_id: var_id.clone(),
                     })
                 }
                 arr => {

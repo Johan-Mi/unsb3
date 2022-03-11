@@ -1,4 +1,10 @@
-#![warn(clippy::unwrap_used)]
+#![warn(clippy::unwrap_used, clippy::pedantic)]
+#![allow(
+    clippy::too_many_lines,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::cast_precision_loss
+)]
 
 use crate::vm::VM;
 use std::fs::File;

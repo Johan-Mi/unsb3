@@ -110,7 +110,7 @@ impl VM {
                 Ok(())
             }
             Statement::Forever { body } => loop {
-                self.run_statement(sprite, body)?
+                self.run_statement(sprite, body)?;
             },
             Statement::Until { condition, body } => {
                 while !self.eval_expr(sprite, condition)?.to_bool() {
@@ -133,7 +133,7 @@ impl VM {
                 for i in 1..=times as u64 {
                     self.vars
                         .borrow_mut()
-                        .insert(counter_id.to_owned(), Value::Num(i as f64));
+                        .insert(counter_id.clone(), Value::Num(i as f64));
                     self.run_statement(sprite, body)?;
                 }
                 Ok(())
@@ -179,7 +179,7 @@ impl VM {
                 // throw away the capacity of the old vector.
                 self.lists
                     .borrow_mut()
-                    .entry(list_id.to_owned())
+                    .entry(list_id.clone())
                     .and_modify(Vec::clear)
                     .or_insert_with(Vec::new);
                 Ok(())
@@ -209,7 +209,7 @@ impl VM {
                 let item = self.eval_expr(sprite, item)?;
                 self.lists
                     .borrow_mut()
-                    .entry(list_id.to_owned())
+                    .entry(list_id.clone())
                     .or_insert_with(|| Vec::with_capacity(1))
                     .push(item);
                 Ok(())
@@ -237,14 +237,14 @@ impl VM {
             }
             Statement::SetVariable { var_id, value } => {
                 let value = self.eval_expr(sprite, value)?;
-                self.vars.borrow_mut().insert(var_id.to_owned(), value);
+                self.vars.borrow_mut().insert(var_id.clone(), value);
                 Ok(())
             }
             Statement::ChangeVariableBy { var_id, value } => {
                 let value = self.eval_expr(sprite, value)?.to_num();
                 let mut vars = self.vars.borrow_mut();
-                let old = vars.get(var_id).map(Value::to_num).unwrap_or(0.0);
-                vars.insert(var_id.to_owned(), Value::Num(old + value));
+                let old = vars.get(var_id).map_or(0.0, Value::to_num);
+                vars.insert(var_id.clone(), Value::Num(old + value));
                 Ok(())
             }
             Statement::StopAll => Err(VMError::StopAll),
@@ -287,8 +287,7 @@ impl VM {
                 self.lists
                     .borrow()
                     .get(list_id)
-                    .map(|lst| Vec::len(lst) as f64)
-                    .unwrap_or(0.0),
+                    .map_or(0.0, |lst| Vec::len(lst) as f64),
             )),
             Expr::Abs(num) => self.mathop(sprite, num, f64::abs),
             Expr::Floor(num) => self.mathop(sprite, num, f64::floor),
@@ -386,27 +385,12 @@ impl VM {
                 sprite.y.set(sprite.y.get() + dy);
                 Ok(())
             }
-            "pen_clear" => {
-                // TODO: Actually do something
-                Ok(())
-            }
-            "pen_stamp" => {
-                // TODO: Actually do something
-                Ok(())
-            }
-            "looks_show" => {
-                // TODO: Actually do something
-                Ok(())
-            }
-            "looks_hide" => {
-                // TODO: Actually do something
-                Ok(())
-            }
-            "looks_setsizeto" => {
-                // TODO: Actually do something
-                Ok(())
-            }
-            "looks_switchcostumeto" => {
+            "pen_clear"
+            | "pen_stamp"
+            | "looks_show"
+            | "looks_hide"
+            | "looks_setsizeto"
+            | "looks_switchcostumeto" => {
                 // TODO: Actually do something
                 Ok(())
             }
@@ -510,7 +494,7 @@ impl VM {
                             Index::Nth(i) => Some(Value::Str(
                                 s.to_string().chars().nth(i)?.to_string(),
                             )),
-                            _ => None,
+                            Index::Last => None,
                         }
                     })()
                     .unwrap_or_default(),

@@ -31,6 +31,8 @@ pub enum VMError {
     StopThisScript,
     #[error("stopped all scripts")]
     StopAll,
+    #[error("unknown opcode: `{0}`")]
+    UnknownOpcode(String),
     #[error("IO error: {0}")]
     IOError(std::io::Error),
 }
@@ -405,11 +407,7 @@ impl VM {
                 self.answer.replace(answer.trim().to_owned());
                 Ok(())
             }
-            _ => {
-                dbg!(opcode);
-                dbg!(inputs);
-                todo!()
-            }
+            _ => Err(VMError::UnknownOpcode(opcode.to_owned())),
         }
     }
 
@@ -501,11 +499,7 @@ impl VM {
                 )
             }
             "sensing_answer" => Ok(Value::Str(self.answer.borrow().clone())),
-            _ => {
-                dbg!(opcode);
-                dbg!(inputs);
-                todo!()
-            }
+            _ => Err(VMError::UnknownOpcode(opcode.to_owned())),
         }
     }
 }

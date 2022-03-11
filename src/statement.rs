@@ -2,7 +2,7 @@ use crate::expr::Expr;
 use std::collections::HashMap;
 
 #[derive(Debug)]
-pub(crate) enum Statement {
+pub enum Statement {
     Builtin {
         opcode: String,
         inputs: HashMap<String, Expr>,

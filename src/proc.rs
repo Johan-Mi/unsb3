@@ -2,13 +2,13 @@ use crate::statement::Statement;
 use std::collections::HashMap;
 
 #[derive(Debug)]
-pub(crate) struct Proc {
+pub struct Proc {
     pub signature: Signature,
     pub body: Statement,
 }
 
 #[derive(Debug)]
-pub(crate) enum Signature {
+pub enum Signature {
     Custom {
         name: String,
         arg_names_by_id: HashMap<String, String>,

@@ -6,7 +6,7 @@ use serde::{de::Error, Deserialize, Deserializer};
 use std::{cell::Cell, collections::HashMap};
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct Sprite {
+pub struct Sprite {
     #[serde(rename = "blocks")]
     #[serde(deserialize_with = "deserialize_blocks")]
     pub procs: Vec<Proc>,
@@ -16,7 +16,7 @@ pub(crate) struct Sprite {
     pub y: Cell<f64>,
 }
 
-pub(crate) fn deserialize_sprites<'de, D>(
+pub fn deserialize_sprites<'de, D>(
     deserializer: D,
 ) -> Result<HashMap<String, Sprite>, D::Error>
 where

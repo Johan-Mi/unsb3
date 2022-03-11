@@ -9,7 +9,7 @@ use std::{cell::RefCell, cmp, collections::HashMap, io::Write, ops};
 use thiserror::Error;
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct VM {
+pub struct VM {
     #[serde(rename = "targets")]
     #[serde(deserialize_with = "crate::sprite::deserialize_sprites")]
     sprites: HashMap<String, Sprite>,
@@ -26,7 +26,7 @@ pub(crate) struct VM {
 }
 
 #[derive(Debug, Error)]
-pub(crate) enum VMError {
+pub enum VMError {
     #[error("stopped this script")]
     StopThisScript,
     #[error("stopped all scripts")]

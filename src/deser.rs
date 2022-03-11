@@ -8,12 +8,12 @@ use serde_json::Value as Json;
 use std::{borrow::Cow, collections::HashMap, fmt::Display};
 use thiserror::Error;
 
-pub(crate) struct DeCtx<'a> {
+pub struct DeCtx<'a> {
     blocks: HashMap<String, Block<'a>>,
 }
 
 #[derive(Debug, Error)]
-pub(crate) enum DeError {
+pub enum DeError {
     #[error("{0}")]
     Custom(String),
     #[error("found no block with ID `{0}`")]
@@ -26,12 +26,12 @@ type DeResult<T> = Result<T, DeError>;
 
 impl serde::de::Error for DeError {
     fn custom<T: Display>(msg: T) -> Self {
-        DeError::Custom(msg.to_string())
+        Self::Custom(msg.to_string())
     }
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct Block<'a> {
+pub struct Block<'a> {
     pub opcode: Cow<'a, str>,
     // pub parent: Option<String>,
     pub next: Option<Cow<'a, str>>,
@@ -43,14 +43,14 @@ pub(crate) struct Block<'a> {
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct Mutation<'a> {
+pub struct Mutation<'a> {
     proccode: Cow<'a, str>,
     argumentids: String,
     argumentnames: Option<String>,
 }
 
 impl<'a> DeCtx<'a> {
-    pub fn new(blocks: HashMap<String, Block<'a>>) -> Self {
+    pub const fn new(blocks: HashMap<String, Block<'a>>) -> Self {
         Self { blocks }
     }
 

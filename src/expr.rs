@@ -1,7 +1,7 @@
 use std::{cmp, collections::HashMap, fmt};
 
 #[derive(Debug)]
-pub(crate) enum Expr {
+pub enum Expr {
     Lit(Value),
     GetVar {
         var_id: String,
@@ -37,7 +37,7 @@ pub(crate) enum Expr {
 }
 
 #[derive(Clone)]
-pub(crate) enum Value {
+pub enum Value {
     Num(f64),
     Str(String),
     Bool(bool),
@@ -55,11 +55,11 @@ impl fmt::Debug for Value {
 
 impl Default for Value {
     fn default() -> Self {
-        Value::Str(String::new())
+        Self::Str(String::new())
     }
 }
 
-pub(crate) enum Index {
+pub enum Index {
     Nth(usize),
     Last,
 }
@@ -115,7 +115,7 @@ impl Value {
     }
 }
 
-pub(crate) fn try_str_to_num(s: &str) -> Option<f64> {
+pub fn try_str_to_num(s: &str) -> Option<f64> {
     match s.trim() {
         "Infinity" | "+Infinity" => Some(f64::INFINITY),
         "-Infinity" => Some(f64::NEG_INFINITY),

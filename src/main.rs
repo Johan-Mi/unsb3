@@ -1,4 +1,4 @@
-#![warn(clippy::unwrap_used, clippy::pedantic)]
+#![warn(clippy::unwrap_used, clippy::pedantic, clippy::nursery)]
 #![allow(
     clippy::too_many_lines,
     clippy::cast_possible_truncation,

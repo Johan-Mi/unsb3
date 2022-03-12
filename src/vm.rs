@@ -5,7 +5,13 @@ use crate::{
     statement::Statement,
 };
 use serde::Deserialize;
-use std::{cell::RefCell, cmp, collections::HashMap, io::Write, ops};
+use std::{
+    cell::{Cell, RefCell},
+    cmp,
+    collections::HashMap,
+    io::Write,
+    ops, time,
+};
 use thiserror::Error;
 
 #[derive(Debug, Deserialize)]
@@ -23,6 +29,13 @@ pub struct VM {
     proc_args: RefCell<HashMap<String, Vec<Value>>>,
     #[serde(skip_deserializing)]
     answer: RefCell<String>,
+    #[serde(skip_deserializing)]
+    #[serde(default = "default_timer")]
+    timer: Cell<time::Instant>,
+}
+
+fn default_timer() -> Cell<time::Instant> {
+    Cell::new(time::Instant::now())
 }
 
 #[derive(Debug, Error)]
@@ -396,6 +409,11 @@ impl VM {
                 // TODO: Actually do something
                 Ok(())
             }
+            "looks_say" => {
+                let message = self.input(sprite, inputs, "MESSAGE")?;
+                println!("{message}");
+                Ok(())
+            }
             "sensing_askandwait" => {
                 let question = self.input(sprite, inputs, "QUESTION")?;
                 print!("{question}");
@@ -405,6 +423,13 @@ impl VM {
                     .read_line(&mut answer)
                     .map_err(VMError::IOError)?;
                 self.answer.replace(answer.trim().to_owned());
+                Ok(())
+            }
+            "control_wait" => {
+                let duration = self.input(sprite, inputs, "DURATION")?;
+                std::thread::sleep(time::Duration::from_micros(
+                    (duration.to_num() * 1.0e6) as u64,
+                ));
                 Ok(())
             }
             _ => Err(VMError::UnknownOpcode(opcode.to_owned())),
@@ -499,6 +524,9 @@ impl VM {
                 )
             }
             "sensing_answer" => Ok(Value::Str(self.answer.borrow().clone())),
+            "sensing_timer" => Ok(Value::Num(
+                self.timer.get().elapsed().as_micros() as f64 * 1.0e-6,
+            )),
             _ => Err(VMError::UnknownOpcode(opcode.to_owned())),
         }
     }

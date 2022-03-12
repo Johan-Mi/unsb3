@@ -283,6 +283,28 @@ impl<'a> DeCtx<'a> {
         match rep {
             Json::String(id) => self.build_funcall(id),
             Json::Array(arr) => match &arr[..] {
+                [Json::Number(n), num]
+                    if n == &serde_json::Number::from(5u32) =>
+                {
+                    let num = match num {
+                        Json::String(s) => serde_json::from_str(s)
+                            .expect("could not parse positive number"),
+                        _ => todo!(),
+                    };
+                    Ok(Expr::Lit(Value::Num(num)))
+                }
+                [Json::Number(n), num]
+                    if n == &serde_json::Number::from(6u32) =>
+                {
+                    let num = match num {
+                        Json::String(s) => s
+                            .parse::<u64>()
+                            .expect("could not parse positive integer")
+                            as f64,
+                        _ => todo!(),
+                    };
+                    Ok(Expr::Lit(Value::Num(num)))
+                }
                 [Json::Number(n), s]
                     if n == &serde_json::Number::from(10u32) =>
                 {

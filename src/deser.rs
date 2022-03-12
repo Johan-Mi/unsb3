@@ -153,10 +153,9 @@ impl<'a> DeCtx<'a> {
             "control_if" => {
                 let condition = self.input(block, "CONDITION")?;
                 let if_true = self.substack(block, "SUBSTACK")?;
-                Ok(Statement::IfElse {
+                Ok(Statement::If {
                     condition,
                     if_true: Box::new(if_true),
-                    if_false: Box::new(Statement::Do(Vec::new())),
                 })
             }
             "control_if_else" => {

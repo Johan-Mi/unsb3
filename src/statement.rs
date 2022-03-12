@@ -8,6 +8,10 @@ pub enum Statement {
         inputs: HashMap<String, Expr>,
     },
     Do(Vec<Statement>),
+    If {
+        condition: Expr,
+        if_true: Box<Statement>,
+    },
     IfElse {
         condition: Expr,
         if_true: Box<Statement>,

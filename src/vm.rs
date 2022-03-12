@@ -98,6 +98,14 @@ impl VM {
             Statement::Do(stmts) => stmts
                 .iter()
                 .try_for_each(|stmt| self.run_statement(sprite, stmt)),
+            Statement::If { condition, if_true } => {
+                let condition = self.eval_expr(sprite, condition)?.to_bool();
+                if condition {
+                    self.run_statement(sprite, if_true)
+                } else {
+                    Ok(())
+                }
+            }
             Statement::IfElse {
                 condition,
                 if_true,

@@ -9,25 +9,22 @@ pub struct Proc {
 
 #[derive(Debug)]
 pub enum Signature {
-    Custom {
-        name: String,
-        arg_names_by_id: HashMap<String, String>,
-    },
     WhenFlagClicked,
-    WhenBroadcastReceived {
-        broadcast_name: String,
-    },
+    WhenBroadcastReceived { broadcast_name: String },
 }
 
 impl Proc {
-    pub fn name_is(&self, name: &str) -> bool {
-        matches!(&self.signature,
-            Signature::Custom { name: my_name, .. } if my_name == name)
-    }
-
     pub fn is_the_broadcast(&self, name: &str) -> bool {
         matches!(&self.signature,
             Signature::WhenBroadcastReceived { broadcast_name, .. }
                 if broadcast_name == name)
     }
 }
+
+#[derive(Debug)]
+pub struct Custom {
+    pub arg_names_by_id: HashMap<String, String>,
+    pub body: Statement,
+}
+
+pub type BunchOfProcs = (Vec<Proc>, HashMap<String, Custom>);

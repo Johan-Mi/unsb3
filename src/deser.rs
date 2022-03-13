@@ -1,6 +1,6 @@
 use crate::{
     expr::{Expr, Value},
-    proc::{Proc, Signature},
+    proc::{BunchOfProcs, Custom, Proc, Signature},
     statement::Statement,
 };
 use serde::Deserialize;
@@ -54,14 +54,14 @@ impl<'a> DeCtx<'a> {
         Self { blocks }
     }
 
-    pub fn build_procs(&self) -> DeResult<Vec<Proc>> {
-        self.blocks
-            .values()
-            .filter_map(|block| match &*block.opcode {
+    pub fn build_procs(&self) -> DeResult<BunchOfProcs> {
+        let mut procs = Vec::new();
+        let mut custom_procs = HashMap::new();
+
+        for block in self.blocks.values() {
+            match &*block.opcode {
                 "procedures_definition" => {
-                    let next = block.next.as_ref()?;
-                    // This should be a `try` block
-                    Some((|| {
+                    if let Some(next) = block.next.as_ref() {
                         let body = self.build_statement(next)?;
                         let proto_id = block
                             .inputs
@@ -89,42 +89,42 @@ impl<'a> DeCtx<'a> {
                             .into_iter()
                             .zip(arg_names.into_iter())
                             .collect();
-                        let signature = Signature::Custom {
+                        custom_procs.insert(
                             name,
-                            arg_names_by_id,
-                        };
-                        Ok(Proc { signature, body })
-                    })())
+                            Custom {
+                                arg_names_by_id,
+                                body,
+                            },
+                        );
+                    }
                 }
                 "event_whenflagclicked" => {
-                    let next = block.next.as_ref()?;
-                    // This should be a `try` block
-                    Some((|| {
+                    if let Some(next) = block.next.as_ref() {
                         let body = self.build_statement(next)?;
-                        Ok(Proc {
+                        procs.push(Proc {
                             signature: Signature::WhenFlagClicked,
                             body,
-                        })
-                    })())
+                        });
+                    }
                 }
                 "event_whenbroadcastreceived" => {
-                    let next = block.next.as_ref()?;
-                    // This should be a `try` block
-                    Some((|| {
+                    if let Some(next) = block.next.as_ref() {
                         let broadcast_name =
                             str_field(block, "BROADCAST_OPTION")?.to_owned();
                         let body = self.build_statement(next)?;
-                        Ok(Proc {
+                        procs.push(Proc {
                             signature: Signature::WhenBroadcastReceived {
                                 broadcast_name,
                             },
                             body,
-                        })
-                    })())
+                        });
+                    }
                 }
-                _ => None,
-            })
-            .collect()
+                _ => {}
+            }
+        }
+
+        Ok((procs, custom_procs))
     }
 
     fn build_statement(&self, id: &str) -> DeResult<Statement> {

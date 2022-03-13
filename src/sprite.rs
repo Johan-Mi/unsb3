@@ -1,18 +1,15 @@
 use crate::{
     deser::{Block, DeCtx},
-    proc::Proc,
+    proc::{BunchOfProcs, Custom, Proc},
 };
 use serde::{de::Error, Deserialize, Deserializer};
 use std::{cell::Cell, collections::HashMap};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug)]
 pub struct Sprite {
-    #[serde(rename = "blocks")]
-    #[serde(deserialize_with = "deserialize_blocks")]
     pub procs: Vec<Proc>,
-    #[serde(default)]
+    pub custom_procs: HashMap<String, Custom>,
     pub x: Cell<f64>,
-    #[serde(default)]
     pub y: Cell<f64>,
 }
 
@@ -23,21 +20,35 @@ where
     D: Deserializer<'de>,
 {
     #[derive(Deserialize)]
-    struct NamedSprite {
+    struct DeSprite {
         name: String,
-        #[serde(flatten)]
-        inner: Sprite,
+        #[serde(deserialize_with = "deserialize_blocks")]
+        blocks: (Vec<Proc>, HashMap<String, Custom>),
+        #[serde(default)]
+        x: f64,
+        #[serde(default)]
+        y: f64,
     }
 
-    let sprites = <Vec<NamedSprite>>::deserialize(deserializer)?;
+    let sprites = <Vec<DeSprite>>::deserialize(deserializer)?;
 
     Ok(sprites
         .into_iter()
-        .map(|NamedSprite { name, inner }| (name, inner))
+        .map(|DeSprite { name, blocks, x, y }| {
+            (
+                name,
+                Sprite {
+                    procs: blocks.0,
+                    custom_procs: blocks.1,
+                    x: Cell::new(x),
+                    y: Cell::new(y),
+                },
+            )
+        })
         .collect())
 }
 
-fn deserialize_blocks<'de, D>(deserializer: D) -> Result<Vec<Proc>, D::Error>
+fn deserialize_blocks<'de, D>(deserializer: D) -> Result<BunchOfProcs, D::Error>
 where
     D: Deserializer<'de>,
 {

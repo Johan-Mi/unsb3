@@ -75,15 +75,6 @@ impl VM {
     }
 
     fn run_proc(&self, sprite: &Sprite, proc: &Proc) -> VMResult<()> {
-        if proc.name_is("putchar %s") {
-            let proc_args = self.proc_args.borrow();
-            if let Some(chr) =
-                proc_args.get("char").and_then(|stack| stack.last())
-            {
-                print!("{chr}");
-                std::io::stdout().flush().map_err(VMError::IOError)?;
-            }
-        }
         match self.run_statement(sprite, &proc.body) {
             Err(VMError::StopThisScript) => Ok(()),
             res => res,
@@ -163,35 +154,55 @@ impl VM {
             }
             Statement::ProcCall { proccode, args } => {
                 let proc = sprite
-                    .procs
-                    .iter()
-                    .find(|p| p.name_is(proccode))
+                    .custom_procs
+                    .get(proccode)
                     .expect("called non-existent custom procedure");
-                let arg_names_by_id = match &proc.signature {
-                    Signature::Custom {
-                        arg_names_by_id, ..
-                    } => arg_names_by_id,
-                    _ => todo!(),
-                };
 
-                for (id, arg) in args {
-                    let arg = self.eval_expr(sprite, arg)?;
-                    self.proc_args
-                        .borrow_mut()
-                        .entry(arg_names_by_id.get(id).unwrap().clone())
-                        .or_insert_with(|| Vec::with_capacity(1))
-                        .push(arg);
-                }
+                match &**proccode {
+                    "putchar %s" | "print %s" => {
+                        if let Some(s) = args.values().next() {
+                            let s = self.eval_expr(sprite, s)?;
+                            print!("{s}");
+                            std::io::stdout()
+                                .flush()
+                                .map_err(VMError::IOError)?;
+                        }
+                    }
+                    "println %s" => {
+                        if let Some(s) = args.values().next() {
+                            let s = self.eval_expr(sprite, s)?;
+                            println!("{s}");
+                        }
+                    }
+                    _ => {
+                        for (id, arg) in args {
+                            let arg = self.eval_expr(sprite, arg)?;
+                            self.proc_args
+                                .borrow_mut()
+                                .entry(
+                                    proc.arg_names_by_id
+                                        .get(id)
+                                        .unwrap()
+                                        .clone(),
+                                )
+                                .or_insert_with(|| Vec::with_capacity(1))
+                                .push(arg);
+                        }
 
-                self.run_proc(sprite, proc)?;
+                        match self.run_statement(sprite, &proc.body) {
+                            Err(VMError::StopThisScript) => Ok(()),
+                            res => res,
+                        }?;
 
-                for id in args.keys() {
-                    if let Some(stack) = self
-                        .proc_args
-                        .borrow_mut()
-                        .get_mut(arg_names_by_id.get(id).unwrap())
-                    {
-                        stack.pop();
+                        for id in args.keys() {
+                            if let Some(stack) = self
+                                .proc_args
+                                .borrow_mut()
+                                .get_mut(proc.arg_names_by_id.get(id).unwrap())
+                            {
+                                stack.pop();
+                            }
+                        }
                     }
                 }
 

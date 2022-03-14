@@ -174,6 +174,9 @@ impl VM {
                             println!("{s}");
                         }
                     }
+                    "term-clear" => {
+                        println!("\x1b[2J\x1b[H");
+                    }
                     _ => {
                         for (id, arg) in args {
                             let arg = self.eval_expr(sprite, arg)?;

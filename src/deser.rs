@@ -283,6 +283,16 @@ impl<'a> DeCtx<'a> {
             Json::String(id) => self.build_funcall(id),
             Json::Array(arr) => match &arr[..] {
                 [Json::Number(n), num]
+                    if n == &serde_json::Number::from(4u32) =>
+                {
+                    let num = match num {
+                        Json::String(s) => serde_json::from_str(s)
+                            .expect("could not parse number"),
+                        _ => todo!(),
+                    };
+                    Ok(Expr::Lit(Value::Num(num)))
+                }
+                [Json::Number(n), num]
                     if n == &serde_json::Number::from(5u32) =>
                 {
                     let num = match num {
@@ -408,13 +418,9 @@ impl<'a> DeCtx<'a> {
     }
 
     fn substack(&self, block: &Block, name: &str) -> DeResult<Statement> {
-        let id = match block.inputs.get(name).and_then(get_rep) {
-            Some(id) => id,
-            None => todo!(),
-        };
-        match id {
-            Json::String(id) => self.build_statement(id),
-            Json::Null => Ok(Statement::Do(Vec::new())),
+        match block.inputs.get(name).and_then(get_rep) {
+            Some(Json::String(id)) => self.build_statement(id),
+            Some(Json::Null) | None => Ok(Statement::Do(Vec::new())),
             _ => todo!(),
         }
     }

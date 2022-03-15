@@ -17,7 +17,8 @@ mod statement;
 mod vm;
 
 fn main() {
-    let path = "project.sb3";
+    let path = std::env::args().nth(1);
+    let path = path.as_deref().unwrap_or("project.sb3");
 
     let file = match File::open(path) {
         Ok(file) => file,

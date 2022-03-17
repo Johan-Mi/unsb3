@@ -18,6 +18,8 @@ pub enum DeError {
     Custom(String),
     #[error("found no block with ID `{0}`")]
     NonExsistentID(String),
+    #[error("missing input `{0}`")]
+    MissingInput(String),
     #[error("missing mutation for block that requires it")]
     MissingMutation,
 }
@@ -407,7 +409,7 @@ impl<'a> DeCtx<'a> {
             block
                 .inputs
                 .get(name)
-                .ok_or_else(|| DeError::NonExsistentID(name.to_owned()))?,
+                .ok_or_else(|| DeError::MissingInput(name.to_owned()))?,
         )
     }
 

@@ -1,6 +1,6 @@
 use crate::{
     expr::{Expr, Value},
-    proc::{Custom, Proc, Procs, Signature},
+    proc::{Custom, Procs},
     statement::Statement,
 };
 use serde::Deserialize;
@@ -57,8 +57,9 @@ impl<'a> DeCtx<'a> {
     }
 
     pub fn build_procs(&self) -> DeResult<Procs> {
-        let mut normal = Vec::new();
+        let mut when_flag_clicked = Vec::new();
         let mut custom = HashMap::new();
+        let mut broadcasts = HashMap::new();
 
         for block in self.blocks.values() {
             match &*block.opcode {
@@ -103,10 +104,7 @@ impl<'a> DeCtx<'a> {
                 "event_whenflagclicked" => {
                     if let Some(next) = block.next.as_ref() {
                         let body = self.build_statement(next)?;
-                        normal.push(Proc {
-                            signature: Signature::WhenFlagClicked,
-                            body,
-                        });
+                        when_flag_clicked.push(body);
                     }
                 }
                 "event_whenbroadcastreceived" => {
@@ -114,19 +112,21 @@ impl<'a> DeCtx<'a> {
                         let broadcast_name =
                             str_field(block, "BROADCAST_OPTION")?.to_owned();
                         let body = self.build_statement(next)?;
-                        normal.push(Proc {
-                            signature: Signature::WhenBroadcastReceived {
-                                broadcast_name,
-                            },
-                            body,
-                        });
+                        broadcasts
+                            .entry(broadcast_name)
+                            .or_insert_with(|| Vec::with_capacity(1))
+                            .push(body);
                     }
                 }
                 _ => {}
             }
         }
 
-        Ok(Procs { normal, custom })
+        Ok(Procs {
+            when_flag_clicked,
+            custom,
+            broadcasts,
+        })
     }
 
     fn build_statement(&self, id: &str) -> DeResult<Statement> {

@@ -1,6 +1,5 @@
 use crate::{
     expr::{Expr, Index, Value},
-    proc::{Proc, Signature},
     sprite::Sprite,
     statement::Statement,
 };
@@ -59,10 +58,8 @@ impl VM {
         // This should be a `try` block
         let res = (|| {
             for spr in self.sprites.values() {
-                for proc in &spr.procs.normal {
-                    if let Signature::WhenFlagClicked = proc.signature {
-                        self.run_proc(spr, proc)?;
-                    }
+                for proc in &spr.procs.when_flag_clicked {
+                    self.run_proc(spr, proc)?;
                 }
             }
             Ok(())
@@ -74,8 +71,8 @@ impl VM {
         }
     }
 
-    fn run_proc(&self, sprite: &Sprite, proc: &Proc) -> VMResult<()> {
-        match self.run_statement(sprite, &proc.body) {
+    fn run_proc(&self, sprite: &Sprite, proc: &Statement) -> VMResult<()> {
+        match self.run_statement(sprite, proc) {
             Err(VMError::StopThisScript) => Ok(()),
             res => res,
         }
@@ -187,10 +184,7 @@ impl VM {
                                 .push(arg);
                         }
 
-                        match self.run_statement(sprite, &proc.body) {
-                            Err(VMError::StopThisScript) => Ok(()),
-                            res => res,
-                        }?;
+                        self.run_proc(sprite, &proc.body)?;
 
                         for id in args.keys() {
                             if let Some(stack) = self
@@ -366,9 +360,11 @@ impl VM {
                 let broadcast_name =
                     self.input(sprite, inputs, "BROADCAST_INPUT")?.to_string();
                 for spr in self.sprites.values() {
-                    for proc in &spr.procs.normal {
-                        if proc.is_the_broadcast(&broadcast_name) {
-                            self.run_proc(spr, proc)?;
+                    if let Some(receivers) =
+                        spr.procs.broadcasts.get(&broadcast_name)
+                    {
+                        for rec in receivers {
+                            self.run_proc(sprite, rec)?;
                         }
                     }
                 }

@@ -288,6 +288,11 @@ impl VM {
         sprite: &Sprite,
         expr: &Expr,
     ) -> VMResult<Value> {
+        let mathop = |num: &Expr, f: fn(f64) -> f64| {
+            let num = self.eval_expr(sprite, num)?;
+            Ok(Value::Num(f(num.to_num())))
+        };
+
         match expr {
             Expr::Lit(lit) => Ok(lit.clone()),
             Expr::GetVar { var_id } => {
@@ -320,45 +325,24 @@ impl VM {
                     .get(list_id)
                     .map_or(0.0, |lst| Vec::len(lst) as f64),
             )),
-            Expr::Abs(num) => self.mathop(sprite, num, f64::abs),
-            Expr::Floor(num) => self.mathop(sprite, num, f64::floor),
-            Expr::Ceiling(num) => self.mathop(sprite, num, f64::ceil),
-            Expr::Sqrt(num) => self.mathop(sprite, num, f64::sqrt),
-            Expr::Sin(num) => self.mathop(sprite, num, f64::sin),
-            Expr::Cos(num) => self.mathop(sprite, num, f64::cos),
-            Expr::Tan(num) => self.mathop(sprite, num, f64::tan),
-            Expr::Asin(num) => self.mathop(sprite, num, f64::asin),
-            Expr::Acos(num) => self.mathop(sprite, num, f64::acos),
-            Expr::Atan(num) => self.mathop(sprite, num, f64::atan),
-            Expr::Ln(num) => self.mathop(sprite, num, f64::ln),
-            Expr::Log(num) => self.mathop(sprite, num, f64::log10),
-            Expr::EExp(num) => self.mathop(sprite, num, f64::exp),
-            Expr::TenExp(num) => self.mathop(sprite, num, |n| 10.0f64.powf(n)),
+            Expr::Abs(num) => mathop(num, f64::abs),
+            Expr::Floor(num) => mathop(num, f64::floor),
+            Expr::Ceiling(num) => mathop(num, f64::ceil),
+            Expr::Sqrt(num) => mathop(num, f64::sqrt),
+            Expr::Sin(num) => mathop(num, f64::sin),
+            Expr::Cos(num) => mathop(num, f64::cos),
+            Expr::Tan(num) => mathop(num, f64::tan),
+            Expr::Asin(num) => mathop(num, f64::asin),
+            Expr::Acos(num) => mathop(num, f64::acos),
+            Expr::Atan(num) => mathop(num, f64::atan),
+            Expr::Ln(num) => mathop(num, f64::ln),
+            Expr::Log(num) => mathop(num, f64::log10),
+            Expr::EExp(num) => mathop(num, f64::exp),
+            Expr::TenExp(num) => mathop(num, |n| 10.0f64.powf(n)),
             Expr::Call { opcode, inputs } => {
                 self.eval_funcall(sprite, opcode, inputs)
             }
         }
-    }
-
-    fn mathop(
-        &self,
-        sprite: &Sprite,
-        num: &Expr,
-        f: fn(f64) -> f64,
-    ) -> VMResult<Value> {
-        let num = self.eval_expr(sprite, num)?;
-        Ok(Value::Num(f(num.to_num())))
-    }
-
-    fn bin_num_op(
-        &self,
-        sprite: &Sprite,
-        inputs: &HashMap<String, Expr>,
-        f: fn(f64, f64) -> f64,
-    ) -> VMResult<Value> {
-        let lhs = self.input(sprite, inputs, "NUM1")?.to_num();
-        let rhs = self.input(sprite, inputs, "NUM2")?.to_num();
-        Ok(Value::Num(f(lhs, rhs)))
     }
 
     fn input(
@@ -458,22 +442,22 @@ impl VM {
         opcode: &str,
         inputs: &HashMap<String, Expr>,
     ) -> VMResult<Value> {
+        let comparison = |ord: cmp::Ordering| {
+            let lhs = self.input(sprite, inputs, "OPERAND1")?;
+            let rhs = self.input(sprite, inputs, "OPERAND2")?;
+            Ok(Value::Bool(lhs.compare(&rhs) == ord))
+        };
+
+        let bin_num_op = |f: fn(f64, f64) -> f64| {
+            let lhs = self.input(sprite, inputs, "NUM1")?.to_num();
+            let rhs = self.input(sprite, inputs, "NUM2")?.to_num();
+            Ok(Value::Num(f(lhs, rhs)))
+        };
+
         match opcode {
-            "operator_equals" => {
-                let lhs = self.input(sprite, inputs, "OPERAND1")?;
-                let rhs = self.input(sprite, inputs, "OPERAND2")?;
-                Ok(Value::Bool(lhs.compare(&rhs) == cmp::Ordering::Equal))
-            }
-            "operator_lt" => {
-                let lhs = self.input(sprite, inputs, "OPERAND1")?;
-                let rhs = self.input(sprite, inputs, "OPERAND2")?;
-                Ok(Value::Bool(lhs.compare(&rhs) == cmp::Ordering::Less))
-            }
-            "operator_gt" => {
-                let lhs = self.input(sprite, inputs, "OPERAND1")?;
-                let rhs = self.input(sprite, inputs, "OPERAND2")?;
-                Ok(Value::Bool(lhs.compare(&rhs) == cmp::Ordering::Greater))
-            }
+            "operator_equals" => comparison(cmp::Ordering::Equal),
+            "operator_lt" => comparison(cmp::Ordering::Less),
+            "operator_gt" => comparison(cmp::Ordering::Greater),
             "operator_not" => {
                 let operand = self.input(sprite, inputs, "OPERAND")?.to_bool();
                 Ok(Value::Bool(!operand))
@@ -496,14 +480,10 @@ impl VM {
                     Ok(Value::Bool(false))
                 }
             }
-            "operator_add" => self.bin_num_op(sprite, inputs, ops::Add::add),
-            "operator_subtract" => {
-                self.bin_num_op(sprite, inputs, ops::Sub::sub)
-            }
-            "operator_multiply" => {
-                self.bin_num_op(sprite, inputs, ops::Mul::mul)
-            }
-            "operator_divide" => self.bin_num_op(sprite, inputs, ops::Div::div),
+            "operator_add" => bin_num_op(ops::Add::add),
+            "operator_subtract" => bin_num_op(ops::Sub::sub),
+            "operator_multiply" => bin_num_op(ops::Mul::mul),
+            "operator_divide" => bin_num_op(ops::Div::div),
             "operator_length" => {
                 let s =
                     self.eval_expr(sprite, inputs.get("STRING").unwrap())?;

@@ -1,14 +1,13 @@
 use crate::{
     deser::{Block, DeCtx},
-    proc::{BunchOfProcs, Custom, Proc},
+    proc::Procs,
 };
 use serde::{de::Error, Deserialize, Deserializer};
 use std::{cell::Cell, collections::HashMap};
 
 #[derive(Debug)]
 pub struct Sprite {
-    pub procs: Vec<Proc>,
-    pub custom_procs: HashMap<String, Custom>,
+    pub procs: Procs,
     pub x: Cell<f64>,
     pub y: Cell<f64>,
 }
@@ -23,7 +22,7 @@ where
     struct DeSprite {
         name: String,
         #[serde(deserialize_with = "deserialize_blocks")]
-        blocks: (Vec<Proc>, HashMap<String, Custom>),
+        blocks: Procs,
         #[serde(default)]
         x: f64,
         #[serde(default)]
@@ -38,8 +37,7 @@ where
             (
                 name,
                 Sprite {
-                    procs: blocks.0,
-                    custom_procs: blocks.1,
+                    procs: blocks,
                     x: Cell::new(x),
                     y: Cell::new(y),
                 },
@@ -48,7 +46,7 @@ where
         .collect())
 }
 
-fn deserialize_blocks<'de, D>(deserializer: D) -> Result<BunchOfProcs, D::Error>
+fn deserialize_blocks<'de, D>(deserializer: D) -> Result<Procs, D::Error>
 where
     D: Deserializer<'de>,
 {

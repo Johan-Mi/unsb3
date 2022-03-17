@@ -59,7 +59,7 @@ impl VM {
         // This should be a `try` block
         let res = (|| {
             for spr in self.sprites.values() {
-                for proc in &spr.procs {
+                for proc in &spr.procs.normal {
                     if let Signature::WhenFlagClicked = proc.signature {
                         self.run_proc(spr, proc)?;
                     }
@@ -148,7 +148,8 @@ impl VM {
             }
             Statement::ProcCall { proccode, args } => {
                 let proc = sprite
-                    .custom_procs
+                    .procs
+                    .custom
                     .get(proccode)
                     .expect("called non-existent custom procedure");
 
@@ -365,7 +366,7 @@ impl VM {
                 let broadcast_name =
                     self.input(sprite, inputs, "BROADCAST_INPUT")?.to_string();
                 for spr in self.sprites.values() {
-                    for proc in &spr.procs {
+                    for proc in &spr.procs.normal {
                         if proc.is_the_broadcast(&broadcast_name) {
                             self.run_proc(spr, proc)?;
                         }

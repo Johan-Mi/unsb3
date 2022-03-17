@@ -27,4 +27,8 @@ pub struct Custom {
     pub body: Statement,
 }
 
-pub type BunchOfProcs = (Vec<Proc>, HashMap<String, Custom>);
+#[derive(Debug)]
+pub struct Procs {
+    pub normal: Vec<Proc>,
+    pub custom: HashMap<String, Custom>,
+}

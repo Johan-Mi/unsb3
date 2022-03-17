@@ -1,6 +1,6 @@
 use crate::{
     expr::{Expr, Value},
-    proc::{BunchOfProcs, Custom, Proc, Signature},
+    proc::{Custom, Proc, Procs, Signature},
     statement::Statement,
 };
 use serde::Deserialize;
@@ -56,9 +56,9 @@ impl<'a> DeCtx<'a> {
         Self { blocks }
     }
 
-    pub fn build_procs(&self) -> DeResult<BunchOfProcs> {
-        let mut procs = Vec::new();
-        let mut custom_procs = HashMap::new();
+    pub fn build_procs(&self) -> DeResult<Procs> {
+        let mut normal = Vec::new();
+        let mut custom = HashMap::new();
 
         for block in self.blocks.values() {
             match &*block.opcode {
@@ -91,7 +91,7 @@ impl<'a> DeCtx<'a> {
                             .into_iter()
                             .zip(arg_names.into_iter())
                             .collect();
-                        custom_procs.insert(
+                        custom.insert(
                             name,
                             Custom {
                                 arg_names_by_id,
@@ -103,7 +103,7 @@ impl<'a> DeCtx<'a> {
                 "event_whenflagclicked" => {
                     if let Some(next) = block.next.as_ref() {
                         let body = self.build_statement(next)?;
-                        procs.push(Proc {
+                        normal.push(Proc {
                             signature: Signature::WhenFlagClicked,
                             body,
                         });
@@ -114,7 +114,7 @@ impl<'a> DeCtx<'a> {
                         let broadcast_name =
                             str_field(block, "BROADCAST_OPTION")?.to_owned();
                         let body = self.build_statement(next)?;
-                        procs.push(Proc {
+                        normal.push(Proc {
                             signature: Signature::WhenBroadcastReceived {
                                 broadcast_name,
                             },
@@ -126,7 +126,7 @@ impl<'a> DeCtx<'a> {
             }
         }
 
-        Ok((procs, custom_procs))
+        Ok(Procs { normal, custom })
     }
 
     fn build_statement(&self, id: &str) -> DeResult<Statement> {

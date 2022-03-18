@@ -19,10 +19,9 @@ where
     D: Deserializer<'de>,
 {
     #[derive(Deserialize)]
-    struct DeSprite {
+    struct DeSprite<'a> {
         name: String,
-        #[serde(deserialize_with = "deserialize_blocks")]
-        blocks: Procs,
+        blocks: HashMap<String, Block<'a>>,
         #[serde(default)]
         x: f64,
         #[serde(default)]
@@ -31,26 +30,19 @@ where
 
     let sprites = <Vec<DeSprite>>::deserialize(deserializer)?;
 
-    Ok(sprites
+    sprites
         .into_iter()
         .map(|DeSprite { name, blocks, x, y }| {
-            (
+            let ctx = DeCtx::new(blocks);
+            let procs = ctx.build_procs().map_err(D::Error::custom)?;
+            Ok((
                 name,
                 Sprite {
-                    procs: blocks,
+                    procs,
                     x: Cell::new(x),
                     y: Cell::new(y),
                 },
-            )
+            ))
         })
-        .collect())
-}
-
-fn deserialize_blocks<'de, D>(deserializer: D) -> Result<Procs, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let blocks = <HashMap<String, Block>>::deserialize(deserializer)?;
-    let ctx = DeCtx::new(blocks);
-    ctx.build_procs().map_err(D::Error::custom)
+        .collect()
 }

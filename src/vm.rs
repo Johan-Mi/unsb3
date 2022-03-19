@@ -459,24 +459,14 @@ impl VM {
                 let operand = self.input(sprite, inputs, "OPERAND")?.to_bool();
                 Ok(Value::Bool(!operand))
             }
-            "operator_or" => {
-                let lhs = self.input(sprite, inputs, "OPERAND1")?.to_bool();
-                if lhs {
-                    Ok(Value::Bool(true))
-                } else {
-                    let rhs = self.input(sprite, inputs, "OPERAND2")?.to_bool();
-                    Ok(Value::Bool(rhs))
-                }
-            }
-            "operator_and" => {
-                let lhs = self.input(sprite, inputs, "OPERAND1")?.to_bool();
-                if lhs {
-                    let rhs = self.input(sprite, inputs, "OPERAND2")?.to_bool();
-                    Ok(Value::Bool(rhs))
-                } else {
-                    Ok(Value::Bool(false))
-                }
-            }
+            "operator_or" => Ok(Value::Bool(
+                self.input(sprite, inputs, "OPERAND1")?.to_bool()
+                    || self.input(sprite, inputs, "OPERAND2")?.to_bool(),
+            )),
+            "operator_and" => Ok(Value::Bool(
+                self.input(sprite, inputs, "OPERAND1")?.to_bool()
+                    && self.input(sprite, inputs, "OPERAND2")?.to_bool(),
+            )),
             "operator_add" => bin_num_op(ops::Add::add),
             "operator_subtract" => bin_num_op(ops::Sub::sub),
             "operator_multiply" => bin_num_op(ops::Mul::mul),

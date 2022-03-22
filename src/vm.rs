@@ -107,10 +107,8 @@ impl VM {
             }
             Statement::Repeat { times, body } => {
                 let times = self.eval_expr(sprite, times)?.to_num().round();
-                if times > 0.0 {
-                    for _ in 0..times as u64 {
-                        self.run_statement(sprite, body)?;
-                    }
+                for _ in 0..times as u64 {
+                    self.run_statement(sprite, body)?;
                 }
                 Ok(())
             }

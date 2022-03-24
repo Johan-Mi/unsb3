@@ -271,7 +271,7 @@ impl<'a> DeCtx<'a> {
                     .iter()
                     .map(|(id, b)| Ok((id.to_string(), self.build_expr(b)?)))
                     .collect::<Result<_, _>>()?;
-                Ok(Statement::Builtin {
+                Ok(Statement::Regular {
                     opcode: opcode.to_string(),
                     inputs,
                 })

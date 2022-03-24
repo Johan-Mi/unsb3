@@ -80,7 +80,7 @@ impl VM {
 
     fn run_statement(&self, sprite: &Sprite, stmt: &Statement) -> VMResult<()> {
         match stmt {
-            Statement::Builtin { opcode, inputs } => {
+            Statement::Regular { opcode, inputs } => {
                 self.call_builtin_statement(sprite, opcode, inputs)
             }
             Statement::Do(stmts) => stmts

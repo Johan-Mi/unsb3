@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 #[derive(Debug)]
 pub enum Statement {
-    Builtin {
+    Regular {
         opcode: String,
         inputs: HashMap<String, Expr>,
     },

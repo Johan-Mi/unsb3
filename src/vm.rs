@@ -505,9 +505,9 @@ impl VM {
                 )
             }
             "sensing_answer" => Ok(Value::Str(self.answer.borrow().clone())),
-            "sensing_timer" => Ok(Value::Num(
-                self.timer.get().elapsed().as_micros() as f64 * 1.0e-6,
-            )),
+            "sensing_timer" => {
+                Ok(Value::Num(self.timer.get().elapsed().as_secs_f64()))
+            }
             _ => Err(VMError::UnknownOpcode(opcode.to_owned())),
         }
     }

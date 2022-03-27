@@ -34,18 +34,23 @@ impl serde::de::Error for DeError {
 
 #[derive(Debug, Deserialize)]
 pub struct Block<'a> {
+    #[serde(borrow)]
     pub opcode: Cow<'a, str>,
     // pub parent: Option<String>,
+    #[serde(borrow)]
     pub next: Option<Cow<'a, str>>,
     #[serde(default)]
+    #[serde(borrow)]
     pub inputs: HashMap<Cow<'a, str>, Json>,
     #[serde(default)]
+    #[serde(borrow)]
     pub fields: HashMap<Cow<'a, str>, Json>,
     pub mutation: Option<Mutation<'a>>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct Mutation<'a> {
+    #[serde(borrow)]
     proccode: Cow<'a, str>,
     argumentids: String,
     argumentnames: Option<String>,

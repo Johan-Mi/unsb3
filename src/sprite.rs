@@ -21,6 +21,7 @@ where
     #[derive(Deserialize)]
     struct DeSprite<'a> {
         name: String,
+        #[serde(borrow)]
         blocks: HashMap<String, Block<'a>>,
         #[serde(default)]
         x: f64,

@@ -355,11 +355,12 @@ impl VM {
     ) -> VMResult<()> {
         match opcode {
             "event_broadcastandwait" => {
-                let broadcast_name =
-                    self.input(sprite, inputs, "BROADCAST_INPUT")?.to_string();
+                let broadcast_input =
+                    self.input(sprite, inputs, "BROADCAST_INPUT")?;
+                let broadcast_name = broadcast_input.to_cow_str();
                 for spr in self.sprites.values() {
                     if let Some(receivers) =
-                        spr.procs.broadcasts.get(&broadcast_name)
+                        spr.procs.broadcasts.get(&*broadcast_name)
                     {
                         for rec in receivers {
                             self.run_proc(sprite, rec)?;
@@ -472,12 +473,14 @@ impl VM {
             "operator_length" => {
                 let s =
                     self.eval_expr(sprite, inputs.get("STRING").unwrap())?;
-                Ok(Value::Num(s.to_string().len() as f64))
+                Ok(Value::Num(s.to_cow_str().len() as f64))
             }
             "operator_join" => {
                 let lhs = self.input(sprite, inputs, "STRING1")?;
                 let rhs = self.input(sprite, inputs, "STRING2")?;
-                Ok(Value::Str(format!("{lhs}{rhs}")))
+                Ok(Value::Str(
+                    (lhs.to_cow_str() + rhs.to_cow_str()).into_owned(),
+                ))
             }
             "motion_xposition" => {
                 // FIXME: This should be rounded
@@ -496,7 +499,7 @@ impl VM {
                         let index = index.to_index()?;
                         match index {
                             Index::Nth(i) => Some(Value::Str(
-                                s.to_string().chars().nth(i)?.to_string(),
+                                s.to_cow_str().chars().nth(i)?.to_string(),
                             )),
                             Index::Last => None,
                         }

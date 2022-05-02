@@ -1,4 +1,4 @@
-use std::{cmp, collections::HashMap, fmt};
+use std::{borrow::Cow, cmp, collections::HashMap, fmt};
 
 #[derive(Debug)]
 pub enum Expr {
@@ -88,6 +88,15 @@ impl Value {
         self.try_to_num().unwrap_or(0.0)
     }
 
+    pub(crate) fn to_cow_str(&self) -> Cow<str> {
+        match self {
+            Value::Num(num) => Cow::Owned(number_to_string(*num)),
+            Value::Str(s) => Cow::Borrowed(s),
+            Value::Bool(true) => Cow::Borrowed("true"),
+            Value::Bool(false) => Cow::Borrowed("false"),
+        }
+    }
+
     pub(crate) fn to_index(&self) -> Option<Index> {
         // TODO: Handle "all", "random" and "any"
         match self {
@@ -108,9 +117,9 @@ impl Value {
             }
         } else {
             // TODO: Do this without allocating new strings
-            self.to_string()
+            self.to_cow_str()
                 .to_lowercase()
-                .cmp(&other.to_string().to_lowercase())
+                .cmp(&other.to_cow_str().to_lowercase())
         }
     }
 }
@@ -126,11 +135,7 @@ pub fn try_str_to_num(s: &str) -> Option<f64> {
 
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Value::Num(num) => number_to_string(*num).fmt(f),
-            Value::Str(s) => s.fmt(f),
-            Value::Bool(b) => b.fmt(f),
-        }
+        self.to_cow_str().fmt(f)
     }
 }
 

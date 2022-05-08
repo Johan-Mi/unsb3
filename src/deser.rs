@@ -5,6 +5,7 @@ use crate::{
 };
 use serde::Deserialize;
 use serde_json::Value as Json;
+use smol_str::SmolStr;
 use std::{borrow::Cow, collections::HashMap, fmt::Display};
 use thiserror::Error;
 
@@ -328,7 +329,7 @@ impl<'a> DeCtx<'a> {
                         Json::String(s) => s,
                         _ => todo!(),
                     };
-                    Ok(Expr::Lit(Value::Str(s.clone())))
+                    Ok(Expr::Lit(Value::Str(SmolStr::new(s))))
                 }
                 [Json::Number(n), Json::String(_), Json::String(var_id)]
                     if n == &serde_json::Number::from(12u32) =>

@@ -158,6 +158,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "smol_str"
+version = "0.1.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7475118a28b7e3a2e157ce0131ba8c5526ea96e90ee601d9f6bb2e286a35ab44"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "syn"
 version = "1.0.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -200,6 +209,7 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
+ "smol_str",
  "thiserror",
  "zip",
 ]

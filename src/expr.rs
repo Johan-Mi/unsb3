@@ -1,3 +1,4 @@
+use smol_str::SmolStr;
 use std::{borrow::Cow, cmp, collections::HashMap, fmt};
 
 #[derive(Debug)]
@@ -39,7 +40,7 @@ pub enum Expr {
 #[derive(Clone)]
 pub enum Value {
     Num(f64),
-    Str(String),
+    Str(SmolStr),
     Bool(bool),
 }
 
@@ -55,7 +56,7 @@ impl fmt::Debug for Value {
 
 impl Default for Value {
     fn default() -> Self {
-        Self::Str(String::new())
+        Self::Str(SmolStr::default())
     }
 }
 

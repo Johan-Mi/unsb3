@@ -4,6 +4,7 @@ use crate::{
     statement::Statement,
 };
 use serde::Deserialize;
+use smol_str::SmolStr;
 use std::{
     cell::{Cell, RefCell},
     cmp,
@@ -478,9 +479,7 @@ impl VM {
             "operator_join" => {
                 let lhs = self.input(sprite, inputs, "STRING1")?;
                 let rhs = self.input(sprite, inputs, "STRING2")?;
-                Ok(Value::Str(
-                    (lhs.to_cow_str() + rhs.to_cow_str()).into_owned(),
-                ))
+                Ok(Value::Str((lhs.to_cow_str() + rhs.to_cow_str()).into()))
             }
             "motion_xposition" => {
                 // FIXME: This should be rounded
@@ -499,7 +498,11 @@ impl VM {
                         let index = index.to_index()?;
                         match index {
                             Index::Nth(i) => Some(Value::Str(
-                                s.to_cow_str().chars().nth(i)?.to_string(),
+                                s.to_cow_str()
+                                    .chars()
+                                    .skip(i)
+                                    .take(1)
+                                    .collect(),
                             )),
                             Index::Last => None,
                         }
@@ -507,7 +510,9 @@ impl VM {
                     .unwrap_or_default(),
                 )
             }
-            "sensing_answer" => Ok(Value::Str(self.answer.borrow().clone())),
+            "sensing_answer" => {
+                Ok(Value::Str(SmolStr::new(&*self.answer.borrow())))
+            }
             "sensing_timer" => {
                 Ok(Value::Num(self.timer.get().elapsed().as_secs_f64()))
             }

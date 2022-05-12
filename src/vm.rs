@@ -47,7 +47,7 @@ pub enum VMError {
     #[error("unknown opcode: `{0}`")]
     UnknownOpcode(String),
     #[error("IO error: {0}")]
-    IOError(std::io::Error),
+    IOError(#[from] std::io::Error),
 }
 
 type VMResult<T> = Result<T, VMError>;
@@ -154,9 +154,7 @@ impl VM {
                         if let Some(s) = args.values().next() {
                             let s = self.eval_expr(sprite, s)?;
                             print!("{s}");
-                            std::io::stdout()
-                                .flush()
-                                .map_err(VMError::IOError)?;
+                            std::io::stdout().flush()?;
                         }
                     }
                     "println %s" => {
@@ -415,10 +413,8 @@ impl VM {
                 let question = self.input(sprite, inputs, "QUESTION")?;
                 print!("{question}");
                 let mut answer = String::new();
-                std::io::stdout().flush().map_err(VMError::IOError)?;
-                std::io::stdin()
-                    .read_line(&mut answer)
-                    .map_err(VMError::IOError)?;
+                std::io::stdout().flush()?;
+                std::io::stdin().read_line(&mut answer)?;
                 self.answer.replace(answer.trim().to_owned());
                 Ok(())
             }

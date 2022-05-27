@@ -136,7 +136,7 @@ pub fn try_str_to_num(s: &str) -> Option<f64> {
 
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.to_cow_str().fmt(f)
+        write!(f, "{}", self.to_cow_str())
     }
 }
 

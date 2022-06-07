@@ -52,8 +52,8 @@ pub struct Block<'a> {
 #[derive(Debug, Deserialize)]
 pub struct Mutation<'a> {
     #[serde(borrow)]
-    proccode: Cow<'a, str>,
-    argumentids: String,
+    proccode: Option<Cow<'a, str>>,
+    argumentids: Option<String>,
     argumentnames: Option<String>,
 }
 
@@ -83,10 +83,18 @@ impl<'a> DeCtx<'a> {
                             .mutation
                             .as_ref()
                             .ok_or(DeError::MissingMutation)?;
-                        let name = mutation.proccode.to_string();
-                        let arg_ids: Vec<String> =
-                            serde_json::from_str(&mutation.argumentids)
-                                .expect("argumentids was not valid JSON");
+                        let name = mutation
+                            .proccode
+                            .as_ref()
+                            .expect("missing proccode for custom block")
+                            .to_string();
+                        let arg_ids: Vec<String> = serde_json::from_str(
+                            mutation
+                                .argumentids
+                                .as_deref()
+                                .expect("missing argumentids"),
+                        )
+                        .expect("argumentids was not valid JSON");
                         let arg_names: Vec<String> = serde_json::from_str(
                             mutation
                                 .argumentnames
@@ -210,7 +218,11 @@ impl<'a> DeCtx<'a> {
             "procedures_call" => {
                 let mutation =
                     block.mutation.as_ref().ok_or(DeError::MissingMutation)?;
-                let proccode = mutation.proccode.to_string();
+                let proccode = mutation
+                    .proccode
+                    .as_ref()
+                    .expect("missing proccode for custom block")
+                    .to_string();
                 let args = block
                     .inputs
                     .iter()

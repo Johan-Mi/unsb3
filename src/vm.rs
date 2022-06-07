@@ -1,8 +1,5 @@
-use crate::{
-    expr::{Expr, Index, Value},
-    sprite::Sprite,
-    statement::Statement,
-};
+use crate::{expr::Expr, sprite::Sprite, statement::Statement};
+use sb3_stuff::{Index, Value};
 use serde::Deserialize;
 use smol_str::SmolStr;
 use std::{

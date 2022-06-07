@@ -1,8 +1,9 @@
 use crate::{
-    expr::{Expr, Value},
+    expr::Expr,
     proc::{Custom, Procs},
     statement::Statement,
 };
+use sb3_stuff::Value;
 use serde::Deserialize;
 use serde_json::Value as Json;
 use smol_str::SmolStr;

@@ -120,6 +120,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73b4b750c782965c211b42f022f59af1fbceabdd026623714f104152f1ec149f"
 
 [[package]]
+name = "sb3-stuff"
+version = "0.1.0"
+source = "git+https://github.com/Johan-Mi/sb3-stuff#a08090b41c3129b20a20309a7887db844ed5021d"
+dependencies = [
+ "smol_str",
+]
+
+[[package]]
 name = "serde"
 version = "1.0.137"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -200,6 +208,7 @@ checksum = "957e51f3646910546462e67d5f7599b9e4fb8acdd304b087a6494730f9eebf04"
 name = "unsb3"
 version = "0.1.0"
 dependencies = [
+ "sb3-stuff",
  "serde",
  "serde_json",
  "smol_str",

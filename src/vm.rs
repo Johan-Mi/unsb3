@@ -475,7 +475,7 @@ impl VM {
             "operator_join" => {
                 let lhs = self.input(sprite, inputs, "STRING1")?;
                 let rhs = self.input(sprite, inputs, "STRING2")?;
-                Ok(Value::Str((lhs.to_cow_str() + rhs.to_cow_str()).into()))
+                Ok(Value::String((lhs.to_cow_str() + rhs.to_cow_str()).into()))
             }
             "motion_xposition" => {
                 // FIXME: This should be rounded
@@ -493,7 +493,7 @@ impl VM {
                     (|| {
                         let index = index.to_index()?;
                         match index {
-                            Index::Nth(i) => Some(Value::Str(
+                            Index::Nth(i) => Some(Value::String(
                                 s.to_cow_str()
                                     .chars()
                                     .skip(i)
@@ -507,7 +507,7 @@ impl VM {
                 )
             }
             "sensing_answer" => {
-                Ok(Value::Str(SmolStr::new(&*self.answer.borrow())))
+                Ok(Value::String(SmolStr::new(&*self.answer.borrow())))
             }
             "sensing_timer" => {
                 Ok(Value::Num(self.timer.get().elapsed().as_secs_f64()))

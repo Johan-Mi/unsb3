@@ -341,7 +341,7 @@ impl<'a> DeCtx<'a> {
                         Json::String(s) => s,
                         _ => todo!(),
                     };
-                    Ok(Expr::Lit(Value::Str(SmolStr::new(s))))
+                    Ok(Expr::Lit(Value::String(SmolStr::new(s))))
                 }
                 [Json::Number(n), Json::String(_), Json::String(var_id)]
                     if n == &serde_json::Number::from(12u32) =>

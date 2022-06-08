@@ -1,7 +1,6 @@
 use crate::{expr::Expr, sprite::Sprite, statement::Statement};
 use sb3_stuff::{Index, Value};
 use serde::Deserialize;
-use smol_str::SmolStr;
 use std::{
     cell::{Cell, RefCell},
     cmp,
@@ -504,7 +503,7 @@ impl VM {
                 )
             }
             "sensing_answer" => {
-                Ok(Value::String(SmolStr::new(&*self.answer.borrow())))
+                Ok(Value::String(self.answer.borrow().as_str().into()))
             }
             "sensing_timer" => {
                 Ok(Value::Num(self.timer.get().elapsed().as_secs_f64()))

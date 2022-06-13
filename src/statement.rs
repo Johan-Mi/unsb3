@@ -1,11 +1,12 @@
 use crate::expr::Expr;
+use smol_str::SmolStr;
 use std::collections::HashMap;
 
 #[derive(Debug)]
 pub enum Statement {
     Regular {
-        opcode: String,
-        inputs: HashMap<String, Expr>,
+        opcode: SmolStr,
+        inputs: HashMap<SmolStr, Expr>,
     },
     Do(Vec<Statement>),
     If {
@@ -33,36 +34,36 @@ pub enum Statement {
         body: Box<Statement>,
     },
     For {
-        counter_id: String,
+        counter_id: SmolStr,
         times: Expr,
         body: Box<Statement>,
     },
     ProcCall {
         proccode: String,
-        args: HashMap<String, Expr>,
+        args: HashMap<SmolStr, Expr>,
     },
     DeleteAllOfList {
-        list_id: String,
+        list_id: SmolStr,
     },
     DeleteOfList {
-        list_id: String,
+        list_id: SmolStr,
         index: Expr,
     },
     AddToList {
-        list_id: String,
+        list_id: SmolStr,
         item: Expr,
     },
     ReplaceItemOfList {
-        list_id: String,
+        list_id: SmolStr,
         index: Expr,
         item: Expr,
     },
     SetVariable {
-        var_id: String,
+        var_id: SmolStr,
         value: Expr,
     },
     ChangeVariableBy {
-        var_id: String,
+        var_id: SmolStr,
         value: Expr,
     },
     StopAll,

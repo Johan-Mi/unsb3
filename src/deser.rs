@@ -6,11 +6,12 @@ use crate::{
 use sb3_stuff::Value;
 use serde::Deserialize;
 use serde_json::Value as Json;
+use smol_str::SmolStr;
 use std::{borrow::Cow, collections::HashMap, fmt::Display};
 use thiserror::Error;
 
 pub struct DeCtx<'a> {
-    blocks: HashMap<String, Block<'a>>,
+    blocks: HashMap<SmolStr, Block<'a>>,
 }
 
 #[derive(Debug, Error)]
@@ -58,7 +59,7 @@ pub struct Mutation<'a> {
 }
 
 impl<'a> DeCtx<'a> {
-    pub const fn new(blocks: HashMap<String, Block<'a>>) -> Self {
+    pub const fn new(blocks: HashMap<SmolStr, Block<'a>>) -> Self {
         Self { blocks }
     }
 
@@ -88,14 +89,14 @@ impl<'a> DeCtx<'a> {
                             .as_ref()
                             .expect("missing proccode for custom block")
                             .to_string();
-                        let arg_ids: Vec<String> = serde_json::from_str(
+                        let arg_ids: Vec<SmolStr> = serde_json::from_str(
                             mutation
                                 .argumentids
                                 .as_deref()
                                 .expect("missing argumentids"),
                         )
                         .expect("argumentids was not valid JSON");
-                        let arg_names: Vec<String> = serde_json::from_str(
+                        let arg_names: Vec<SmolStr> = serde_json::from_str(
                             mutation
                                 .argumentnames
                                 .as_ref()
@@ -206,7 +207,7 @@ impl<'a> DeCtx<'a> {
                 Ok(Statement::While { condition, body })
             }
             "control_for_each" => {
-                let counter_id = var_list_field(block, "VARIABLE")?.to_owned();
+                let counter_id = var_list_field(block, "VARIABLE")?.into();
                 let times = self.input(block, "VALUE")?;
                 let body = Box::new(self.substack(block, "SUBSTACK")?);
                 Ok(Statement::For {
@@ -226,28 +227,26 @@ impl<'a> DeCtx<'a> {
                 let args = block
                     .inputs
                     .iter()
-                    .map(|(id, arg)| {
-                        Ok((id.to_string(), self.build_expr(arg)?))
-                    })
+                    .map(|(id, arg)| Ok((id.into(), self.build_expr(arg)?)))
                     .collect::<Result<_, _>>()?;
                 Ok(Statement::ProcCall { proccode, args })
             }
             "data_deletealloflist" => {
-                let list_id = var_list_field(block, "LIST")?.to_owned();
+                let list_id = var_list_field(block, "LIST")?.into();
                 Ok(Statement::DeleteAllOfList { list_id })
             }
             "data_deleteoflist" => {
-                let list_id = var_list_field(block, "LIST")?.to_owned();
+                let list_id = var_list_field(block, "LIST")?.into();
                 let index = self.input(block, "INDEX")?;
                 Ok(Statement::DeleteOfList { list_id, index })
             }
             "data_addtolist" => {
-                let list_id = var_list_field(block, "LIST")?.to_owned();
+                let list_id = var_list_field(block, "LIST")?.into();
                 let item = self.input(block, "ITEM")?;
                 Ok(Statement::AddToList { list_id, item })
             }
             "data_replaceitemoflist" => {
-                let list_id = var_list_field(block, "LIST")?.to_owned();
+                let list_id = var_list_field(block, "LIST")?.into();
                 let index = self.input(block, "INDEX")?;
                 let item = self.input(block, "ITEM")?;
                 Ok(Statement::ReplaceItemOfList {
@@ -257,12 +256,12 @@ impl<'a> DeCtx<'a> {
                 })
             }
             "data_setvariableto" => {
-                let var_id = var_list_field(block, "VARIABLE")?.to_owned();
+                let var_id = var_list_field(block, "VARIABLE")?.into();
                 let value = self.input(block, "VALUE")?;
                 Ok(Statement::SetVariable { var_id, value })
             }
             "data_changevariableby" => {
-                let var_id = var_list_field(block, "VARIABLE")?.to_owned();
+                let var_id = var_list_field(block, "VARIABLE")?.into();
                 let value = self.input(block, "VALUE")?;
                 Ok(Statement::ChangeVariableBy { var_id, value })
             }
@@ -287,10 +286,10 @@ impl<'a> DeCtx<'a> {
                 let inputs = block
                     .inputs
                     .iter()
-                    .map(|(id, b)| Ok((id.to_string(), self.build_expr(b)?)))
+                    .map(|(id, b)| Ok((id.into(), self.build_expr(b)?)))
                     .collect::<Result<_, _>>()?;
                 Ok(Statement::Regular {
-                    opcode: opcode.to_string(),
+                    opcode: opcode.into(),
                     inputs,
                 })
             }
@@ -347,7 +346,7 @@ impl<'a> DeCtx<'a> {
                     if n == &serde_json::Number::from(12u32) =>
                 {
                     Ok(Expr::GetVar {
-                        var_id: var_id.clone(),
+                        var_id: var_id.into(),
                     })
                 }
                 arr => {
@@ -364,19 +363,19 @@ impl<'a> DeCtx<'a> {
 
         match &*block.opcode {
             "argument_reporter_string_number" => {
-                let name = str_field(block, "VALUE")?.to_owned();
+                let name = str_field(block, "VALUE")?.into();
                 Ok(Expr::ProcArgStringNumber { name })
             }
             "data_itemoflist" => {
                 let index = self.input(block, "INDEX")?;
-                let list_id = var_list_field(block, "LIST")?.to_owned();
+                let list_id = var_list_field(block, "LIST")?.into();
                 Ok(Expr::ItemOfList {
                     list_id,
                     index: Box::new(index),
                 })
             }
             "data_lengthoflist" => {
-                let list_id = var_list_field(block, "LIST")?.to_owned();
+                let list_id = var_list_field(block, "LIST")?.into();
                 Ok(Expr::LengthOfList { list_id })
             }
             "operator_mathop" => {
@@ -410,9 +409,7 @@ impl<'a> DeCtx<'a> {
                 let inputs = block
                     .inputs
                     .iter()
-                    .map(|(id, inp)| {
-                        Ok((id.to_string(), self.build_expr(inp)?))
-                    })
+                    .map(|(id, inp)| Ok((id.into(), self.build_expr(inp)?)))
                     .collect::<Result<_, _>>()?;
                 Ok(Expr::Call {
                     opcode: opcode.to_string(),

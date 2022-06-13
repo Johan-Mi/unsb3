@@ -1,21 +1,22 @@
 use sb3_stuff::Value;
+use smol_str::SmolStr;
 use std::collections::HashMap;
 
 #[derive(Debug)]
 pub enum Expr {
     Lit(Value),
     GetVar {
-        var_id: String,
+        var_id: SmolStr,
     },
     ProcArgStringNumber {
-        name: String,
+        name: SmolStr,
     },
     ItemOfList {
-        list_id: String,
+        list_id: SmolStr,
         index: Box<Expr>,
     },
     LengthOfList {
-        list_id: String,
+        list_id: SmolStr,
     },
     Abs(Box<Expr>),
     Floor(Box<Expr>),
@@ -33,6 +34,6 @@ pub enum Expr {
     TenExp(Box<Expr>),
     Call {
         opcode: String,
-        inputs: HashMap<String, Expr>,
+        inputs: HashMap<SmolStr, Expr>,
     },
 }

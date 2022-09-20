@@ -394,6 +394,9 @@ impl VM {
             }
             "pen_clear"
             | "pen_stamp"
+            | "pen_setPenSizeTo"
+            | "pen_penDown"
+            | "pen_penUp"
             | "looks_show"
             | "looks_hide"
             | "looks_setsizeto"

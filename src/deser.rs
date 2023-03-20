@@ -336,10 +336,7 @@ impl<'a> DeCtx<'a> {
                 [Json::Number(n), s]
                     if n == &serde_json::Number::from(10u32) =>
                 {
-                    let s = match s {
-                        Json::String(s) => s,
-                        _ => todo!(),
-                    };
+                    let Json::String(s) = s else { todo!(); };
                     Ok(Expr::Lit(Value::String(s.into())))
                 }
                 [Json::Number(n), Json::String(_), Json::String(var_id)]

@@ -51,8 +51,6 @@ type VMResult<T> = Result<T, VMError>;
 
 impl VM {
     pub fn run(&self) -> VMResult<()> {
-        println!("Running vm...");
-
         // This should be a `try` block
         let res = (|| {
             for spr in self.sprites.values() {

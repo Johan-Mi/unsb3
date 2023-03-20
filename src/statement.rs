@@ -8,35 +8,35 @@ pub enum Statement {
         opcode: SmolStr,
         inputs: HashMap<SmolStr, Expr>,
     },
-    Do(Vec<Statement>),
+    Do(Vec<Self>),
     If {
         condition: Expr,
-        if_true: Box<Statement>,
+        if_true: Box<Self>,
     },
     IfElse {
         condition: Expr,
-        if_true: Box<Statement>,
-        if_false: Box<Statement>,
+        if_true: Box<Self>,
+        if_false: Box<Self>,
     },
     Repeat {
         times: Expr,
-        body: Box<Statement>,
+        body: Box<Self>,
     },
     Forever {
-        body: Box<Statement>,
+        body: Box<Self>,
     },
     Until {
         condition: Expr,
-        body: Box<Statement>,
+        body: Box<Self>,
     },
     While {
         condition: Expr,
-        body: Box<Statement>,
+        body: Box<Self>,
     },
     For {
         counter_id: SmolStr,
         times: Expr,
-        body: Box<Statement>,
+        body: Box<Self>,
     },
     ProcCall {
         proccode: String,

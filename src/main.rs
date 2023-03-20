@@ -53,8 +53,7 @@ fn main() {
         }
     };
 
-    match vm.run() {
-        Ok(()) => println!("Ran successfully"),
-        Err(err) => eprintln!("VM error: {err}"),
+    if let Err(err) = vm.run() {
+        eprintln!("VM error: {err}");
     }
 }

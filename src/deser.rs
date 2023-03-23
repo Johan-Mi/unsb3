@@ -302,7 +302,7 @@ impl<'a> DeCtx<'a> {
             Json::String(id) => self.build_funcall(id),
             Json::Array(arr) => match &arr[..] {
                 [Json::Number(n), num]
-                    if n == &serde_json::Number::from(4u32) =>
+                    if *n == serde_json::Number::from(4u32) =>
                 {
                     let num = match num {
                         Json::String(s) => serde_json::from_str(s)
@@ -312,7 +312,7 @@ impl<'a> DeCtx<'a> {
                     Ok(Expr::Lit(Value::Num(num)))
                 }
                 [Json::Number(n), num]
-                    if n == &serde_json::Number::from(5u32) =>
+                    if *n == serde_json::Number::from(5u32) =>
                 {
                     let num = match num {
                         Json::String(s) => serde_json::from_str(s)
@@ -322,7 +322,7 @@ impl<'a> DeCtx<'a> {
                     Ok(Expr::Lit(Value::Num(num)))
                 }
                 [Json::Number(n), num]
-                    if n == &serde_json::Number::from(6u32) =>
+                    if *n == serde_json::Number::from(6u32) =>
                 {
                     let num = match num {
                         Json::String(s) => s
@@ -334,13 +334,13 @@ impl<'a> DeCtx<'a> {
                     Ok(Expr::Lit(Value::Num(num)))
                 }
                 [Json::Number(n), s]
-                    if n == &serde_json::Number::from(10u32) =>
+                    if *n == serde_json::Number::from(10u32) =>
                 {
                     let Json::String(s) = s else { todo!(); };
                     Ok(Expr::Lit(Value::String(s.into())))
                 }
                 [Json::Number(n), Json::String(_), Json::String(var_id)]
-                    if n == &serde_json::Number::from(12u32) =>
+                    if *n == serde_json::Number::from(12u32) =>
                 {
                     Ok(Expr::GetVar {
                         var_id: var_id.into(),

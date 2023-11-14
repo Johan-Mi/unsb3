@@ -2,8 +2,8 @@ use crate::{
     deser::{Block, DeCtx},
     proc::Procs,
 };
+use ecow::EcoString;
 use serde::{de::Error, Deserialize, Deserializer};
-use smol_str::SmolStr;
 use std::{cell::Cell, collections::HashMap};
 
 #[derive(Debug)]
@@ -15,15 +15,15 @@ pub struct Sprite {
 
 pub fn deserialize_sprites<'de, D>(
     deserializer: D,
-) -> Result<HashMap<SmolStr, Sprite>, D::Error>
+) -> Result<HashMap<EcoString, Sprite>, D::Error>
 where
     D: Deserializer<'de>,
 {
     #[derive(Deserialize)]
     struct DeSprite<'a> {
-        name: SmolStr,
+        name: EcoString,
         #[serde(borrow)]
-        blocks: HashMap<SmolStr, Block<'a>>,
+        blocks: HashMap<EcoString, Block<'a>>,
         #[serde(default)]
         x: f64,
         #[serde(default)]

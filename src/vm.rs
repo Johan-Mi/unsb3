@@ -1,7 +1,7 @@
 use crate::{expr::Expr, sprite::Sprite, statement::Statement};
+use ecow::EcoString;
 use sb3_stuff::{Index, Value};
 use serde::Deserialize;
-use smol_str::SmolStr;
 use std::{
     cell::{Cell, RefCell},
     cmp,
@@ -15,15 +15,15 @@ use thiserror::Error;
 pub struct VM {
     #[serde(rename = "targets")]
     #[serde(deserialize_with = "crate::sprite::deserialize_sprites")]
-    sprites: HashMap<SmolStr, Sprite>,
+    sprites: HashMap<EcoString, Sprite>,
     #[serde(skip_deserializing)]
     // FIXME: this should be deserialized from the sprites
-    vars: RefCell<HashMap<SmolStr, Value>>,
+    vars: RefCell<HashMap<EcoString, Value>>,
     #[serde(skip_deserializing)]
     // FIXME: this should be deserialized from the sprites
-    lists: RefCell<HashMap<SmolStr, Vec<Value>>>,
+    lists: RefCell<HashMap<EcoString, Vec<Value>>>,
     #[serde(skip_deserializing)]
-    proc_args: RefCell<HashMap<SmolStr, Vec<Value>>>,
+    proc_args: RefCell<HashMap<EcoString, Vec<Value>>>,
     #[serde(skip_deserializing)]
     answer: RefCell<String>,
     #[serde(skip_deserializing)]
@@ -335,7 +335,7 @@ impl VM {
     fn input(
         &self,
         sprite: &Sprite,
-        inputs: &HashMap<SmolStr, Expr>,
+        inputs: &HashMap<EcoString, Expr>,
         name: &str,
     ) -> VMResult<Value> {
         self.eval_expr(sprite, inputs.get(name).unwrap())
@@ -345,7 +345,7 @@ impl VM {
         &self,
         sprite: &Sprite,
         opcode: &str,
-        inputs: &HashMap<SmolStr, Expr>,
+        inputs: &HashMap<EcoString, Expr>,
     ) -> VMResult<()> {
         match opcode {
             "event_broadcastandwait" => {
@@ -431,7 +431,7 @@ impl VM {
         &self,
         sprite: &Sprite,
         opcode: &str,
-        inputs: &HashMap<SmolStr, Expr>,
+        inputs: &HashMap<EcoString, Expr>,
     ) -> VMResult<Value> {
         let comparison = |ord: cmp::Ordering| {
             let lhs = self.input(sprite, inputs, "OPERAND1")?;

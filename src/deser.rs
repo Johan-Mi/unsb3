@@ -3,15 +3,15 @@ use crate::{
     proc::{Custom, Procs},
     statement::Statement,
 };
+use ecow::EcoString;
 use sb3_stuff::Value;
 use serde::Deserialize;
 use serde_json::Value as Json;
-use smol_str::SmolStr;
 use std::{borrow::Cow, collections::HashMap, fmt::Display};
 use thiserror::Error;
 
 pub struct DeCtx<'a> {
-    blocks: HashMap<SmolStr, Block<'a>>,
+    blocks: HashMap<EcoString, Block<'a>>,
 }
 
 #[derive(Debug, Error)]
@@ -59,7 +59,7 @@ pub struct Mutation<'a> {
 }
 
 impl<'a> DeCtx<'a> {
-    pub const fn new(blocks: HashMap<SmolStr, Block<'a>>) -> Self {
+    pub const fn new(blocks: HashMap<EcoString, Block<'a>>) -> Self {
         Self { blocks }
     }
 
@@ -89,14 +89,14 @@ impl<'a> DeCtx<'a> {
                             .as_ref()
                             .expect("missing proccode for custom block")
                             .to_string();
-                        let arg_ids: Vec<SmolStr> = serde_json::from_str(
+                        let arg_ids: Vec<EcoString> = serde_json::from_str(
                             mutation
                                 .argumentids
                                 .as_deref()
                                 .expect("missing argumentids"),
                         )
                         .expect("argumentids was not valid JSON");
-                        let arg_names: Vec<SmolStr> = serde_json::from_str(
+                        let arg_names: Vec<EcoString> = serde_json::from_str(
                             mutation
                                 .argumentnames
                                 .as_ref()
@@ -227,7 +227,7 @@ impl<'a> DeCtx<'a> {
                 let args = block
                     .inputs
                     .iter()
-                    .map(|(id, arg)| Ok((id.into(), self.build_expr(arg)?)))
+                    .map(|(id, arg)| Ok(((**id).into(), self.build_expr(arg)?)))
                     .collect::<Result<_, _>>()?;
                 Ok(Statement::ProcCall { proccode, args })
             }
@@ -286,7 +286,7 @@ impl<'a> DeCtx<'a> {
                 let inputs = block
                     .inputs
                     .iter()
-                    .map(|(id, b)| Ok((id.into(), self.build_expr(b)?)))
+                    .map(|(id, b)| Ok(((**id).into(), self.build_expr(b)?)))
                     .collect::<Result<_, _>>()?;
                 Ok(Statement::Regular {
                     opcode: opcode.into(),
@@ -336,14 +336,16 @@ impl<'a> DeCtx<'a> {
                 [Json::Number(n), s]
                     if *n == serde_json::Number::from(10u32) =>
                 {
-                    let Json::String(s) = s else { todo!(); };
-                    Ok(Expr::Lit(Value::String(s.into())))
+                    let Json::String(s) = s else {
+                        todo!();
+                    };
+                    Ok(Expr::Lit(Value::String((**s).into())))
                 }
                 [Json::Number(n), Json::String(_), Json::String(var_id)]
                     if *n == serde_json::Number::from(12u32) =>
                 {
                     Ok(Expr::GetVar {
-                        var_id: var_id.into(),
+                        var_id: (**var_id).into(),
                     })
                 }
                 arr => {
@@ -406,7 +408,7 @@ impl<'a> DeCtx<'a> {
                 let inputs = block
                     .inputs
                     .iter()
-                    .map(|(id, inp)| Ok((id.into(), self.build_expr(inp)?)))
+                    .map(|(id, inp)| Ok(((**id).into(), self.build_expr(inp)?)))
                     .collect::<Result<_, _>>()?;
                 Ok(Expr::Call {
                     opcode: opcode.to_string(),

@@ -6,9 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+ecow = { version = "0.2.0", features = ["serde"] }
 sb3-stuff = { git = "https://github.com/Johan-Mi/sb3-stuff" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "1.0"
 zip = { version = "0.5.13", default-features = false, features = ["deflate", "bzip2"]}
-smol_str = "0.1"

@@ -1,22 +1,22 @@
+use ecow::EcoString;
 use sb3_stuff::Value;
-use smol_str::SmolStr;
 use std::collections::HashMap;
 
 #[derive(Debug)]
 pub enum Expr {
     Lit(Value),
     GetVar {
-        var_id: SmolStr,
+        var_id: EcoString,
     },
     ProcArgStringNumber {
-        name: SmolStr,
+        name: EcoString,
     },
     ItemOfList {
-        list_id: SmolStr,
+        list_id: EcoString,
         index: Box<Self>,
     },
     LengthOfList {
-        list_id: SmolStr,
+        list_id: EcoString,
     },
     Abs(Box<Self>),
     Floor(Box<Self>),
@@ -34,6 +34,6 @@ pub enum Expr {
     TenExp(Box<Self>),
     Call {
         opcode: String,
-        inputs: HashMap<SmolStr, Self>,
+        inputs: HashMap<EcoString, Self>,
     },
 }

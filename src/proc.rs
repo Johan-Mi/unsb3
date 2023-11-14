@@ -1,10 +1,10 @@
 use crate::statement::Statement;
-use smol_str::SmolStr;
+use ecow::EcoString;
 use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct Custom {
-    pub arg_names_by_id: HashMap<SmolStr, SmolStr>,
+    pub arg_names_by_id: HashMap<EcoString, EcoString>,
     pub body: Statement,
 }
 
